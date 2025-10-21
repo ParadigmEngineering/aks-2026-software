@@ -1,0 +1,12 @@
+names:
+- white-line
+nc: 1
+roboflow:
+  license: Private
+  project: white-line-detection-instance-segmentation-qwdzf
+  url: https://app.roboflow.com/paradigmcomputervision/white-line-detection-instance-segmentation-qwdzf/1
+  version: 1
+  workspace: paradigmcomputervision
+test: ../test/images
+train: White-Line-Detection(instance-segmentation)-1/train/images
+val: White-Line-Detection(instance-segmentation)-1/valid/images

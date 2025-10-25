@@ -28,8 +28,8 @@ public:
         // Publisher for waypoints to the MAVROS setpoint topic
         waypoint_publisher_ = this->create_publisher<geographic_msgs::msg::GeoPoseStamped>("/mavros/setpoint_position/global", 10);
 
-        heading_subscriber_ = this->create_subscription<geographic_msgs::msg::GeoPoseStamped>(
-            "/mavros/setpoint_position/global", rclcpp::SensorDataQoS(), std::bind(&WaypointPublisher::heading_callback, this, _1));
+        // heading_subscriber_ = this->create_subscription<geographic_msgs::msg::GeoPoseStamped>(
+        //     "/mavros/setpoint_position/global", rclcpp::SensorDataQoS(), std::bind(&WaypointPublisher::heading_callback, this, _1));
 
         // Create the service client to change the mode
         set_mode_client_ = this->create_client<mavros_msgs::srv::SetMode>("/mavros/set_mode");
@@ -58,18 +58,18 @@ private:
         }
     }
 
-    void heading_callback(const geographic_msgs::msg::GeoPoseStamped::SharedPtr msg)
-    {
-        const auto& orientation = msg->pose.orientation;
+    // void heading_callback(const geographic_msgs::msg::GeoPoseStamped::SharedPtr msg)
+    // {
+    //     const auto& orientation = msg->pose.orientation;
         
-        // Convert quaternion to RPY angles
-        tf2::Quaternion tf_quat;
-        tf2::fromMsg(orientation, tf_quat);
+    //     // Convert quaternion to RPY angles
+    //     tf2::Quaternion tf_quat;
+    //     tf2::fromMsg(orientation, tf_quat);
         
-        double roll, pitch, yaw;
-        tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, yaw);
-        current_heading_ = yaw;
-    }
+    //     double roll, pitch, yaw;
+    //     tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, yaw);
+    //     current_heading_ = yaw;
+    // }
 
     void change_to_offboard_mode()
     {
@@ -112,12 +112,7 @@ private:
         // double waypoint_x = (waypoint_latitude - origin_latitude_) * meters_per_degree_;
         // double waypoint_y = (waypoint_longitude - origin_longitude_) * meters_per_degree_;
 
-        // Calculate heading
-        double heading = calculate_waypoints_angle();
-
-        // Convert heading to quaternion
-        tf2::Quaternion quaternion;
-        quaternion.setRPY(0, 0, heading); // Roll and pitch are 0; yaw is the heading
+        move_waypoint();
 
         // Set message values
         auto waypoint_msg = geographic_msgs::msg::GeoPoseStamped();
@@ -126,13 +121,8 @@ private:
         waypoint_msg.pose.position.latitude = waypoint_latitude;
         waypoint_msg.pose.position.longitude = waypoint_longitude;
         waypoint_msg.pose.position.altitude = 0.0; // Assuming ground-level operation
-        waypoint_msg.pose.orientation.x = quaternion.x();
-        waypoint_msg.pose.orientation.y = quaternion.y();
-        waypoint_msg.pose.orientation.z = quaternion.z();
-        waypoint_msg.pose.orientation.w = quaternion.w();
 
         RCLCPP_INFO(this->get_logger(), "Publishing Waypoint: latitude: %.2f, longitude: %.2f, current counter = %d", waypoint_latitude, waypoint_longitude, counter);
-        RCLCPP_INFO(this->get_logger(), "Heading: %.2f", heading);
         waypoint_publisher_->publish(waypoint_msg);
     }
 
@@ -146,62 +136,34 @@ private:
         return angle;
     }
 
+    void move_waypoint(){
+        auto [outer_index, outer_dist, inner_index, inner_dist] = find_adjacent_lines();
+        RCLCPP_INFO(this->get_logger(), "inner index vs outer index, %zu vs %.zu", inner_index, outer_index);
+        RCLCPP_INFO(this->get_logger(), "inner dist vs outer dist, %.10f vs %.10f", inner_dist, outer_dist);
+        return;
+    }
 
-    double calculate_waypoints_angle()
-    {
-
-        // Algo 1 - probably not the best when hyperparameters of 2 are good - Jason
-
-        // double way_vec_lon = (next_waypoint_longitude - waypoint_longitude);
-        // double way_vec_lat = (next_waypoint_latitude - waypoint_latitude);
-
-        // double kart_vec_lon = (current_longitude_ - last_kart_longitude);
-        // double kart_vec_lat = (current_latitude_ - last_kart_latitude);
-
-        // double wayCrossKart_norm = abs((way_vec_lon*kart_vec_lat) - (way_vec_lat*kart_vec_lon));
-
-        // // cos (theta) = (a dot b)/(|a|*|b|)
-        // // sin (theta) = (|a x b|)/(|a|*|b|)
-        // double heading = atan2(wayCrossKart_norm, (way_vec_lon*kart_vec_lon + way_vec_lat*kart_vec_lat));
-
-        // // Normalize the heading to [-pi, pi)
-        // heading = normalize_angle(heading);
-
-        // if (heading < -M_PI/7){
-        //     heading = -M_PI/7;
-        // }
-        // else if (heading >= M_PI/7){
-        //     heading = M_PI/7;
-        // }
-
-        // if ((waypoint_latitude >  current_latitude_  && waypoint_longitude < current_longitude_)||(waypoint_latitude <  current_latitude_  && waypoint_longitude > current_longitude_)){
-        //     heading = -heading;
-        // }
-
-        //----------------------------------
-
-        //Algo 2: Probably the better once good hyperparameters - Jason
-        
-        double alpha = atan2(waypoint_longitude - current_longitude_, waypoint_latitude - current_latitude_) - current_heading_;
-        alpha = normalize_angle(alpha);
-        
-        double beta = atan2(next2_waypoint_longitude - next_waypoint_longitude, next2_waypoint_latitude - next_waypoint_latitude) - (current_heading_ + alpha);
-        beta = normalize_angle(beta);
-        
-        // Tune these, beta < 0, aplha > 0
-        double K_alpha = 1.0;
-        double K_beta = -1.0;
-        
-        double heading = ((K_alpha * alpha) + (K_beta * beta));
-        
-        if (heading < -M_PI/7){
-            heading = -M_PI/7;
+    std::tuple<size_t, double, size_t, double> find_adjacent_lines(){
+        size_t outer_min_index = 0;
+        size_t inner_min_index = 0;
+        double outer_min_dist = std::numeric_limits<double>::max();
+        double inner_min_dist = std::numeric_limits<double>::max();
+        double dist;
+        for (size_t i=0; i < outerspline_vec.size();i++){
+            dist = (current_latitude_ - outerspline_vec[i][0]) * (current_latitude_ - outerspline_vec[i][0]) + (current_longitude_ - outerspline_vec[i][1]) * (current_longitude_ - outerspline_vec[i][1]);
+            if (dist < outer_min_dist){
+                outer_min_dist = dist;
+                outer_min_index = i;
+            }
         }
-        else if (heading >= M_PI/7){
-            heading = M_PI/7;
+        for (size_t i=0; i < innerspline_vec.size();i++){
+            dist = (current_latitude_ - innerspline_vec[i][0]) * (current_latitude_ - innerspline_vec[i][0]) + (current_longitude_ - innerspline_vec[i][1]) * (current_longitude_ - innerspline_vec[i][1]);
+            if (dist < inner_min_dist){
+                inner_min_dist = dist;
+                inner_min_index = i;
+            }
         }
-
-        return heading;
+        return {outer_min_index, sqrt(outer_min_dist), inner_min_index, sqrt(inner_min_dist)};
     }
 
     void get_next_waypoint()
@@ -239,8 +201,10 @@ private:
         std::string package_share_path = ament_index_cpp::get_package_share_directory("ros_nav");
         std::string latitude_file_path = package_share_path + "/data/latitudes_minimal.txt";
         std::string longitude_file_path = package_share_path + "/data/longitudes_minimal.txt";
-        std::string spline_lat_file_path = package_share_path + "/data/latitudes_spline.txt";
-        std::string spline_lon_file_path = package_share_path + "/data/longitudes_spline.txt";
+        std::string outerspline_lat_file_path = package_share_path + "/data/outerlat_spline.txt";
+        std::string outerspline_lon_file_path = package_share_path + "/data/outerlon_spline.txt";
+        std::string innerspline_lat_file_path = package_share_path + "/data/innerlat_spline.txt";
+        std::string innerspline_lon_file_path = package_share_path + "/data/innerlon_spline.txt";
 
         // Read latitudes from file
         ifstream read_latitude(latitude_file_path);
@@ -265,28 +229,50 @@ private:
         }
         read_longitude.close();
 
-        // Read spline latitudes from file
-        ifstream read_spline_lat(spline_lat_file_path);
-        if (!read_spline_lat.is_open()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", spline_lat_file_path.c_str());
+        // Read outer spline latitudes from file
+        ifstream read_outerspline_lat(outerspline_lat_file_path);
+        if (!read_outerspline_lat.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", outerspline_lat_file_path.c_str());
             return;
         }
-        while (read_spline_lat >> value) {
-            spline_lat_vec.push_back(value);
+        while (read_outerspline_lat >> value) {
+            outerspline_lat_vec.push_back(value);
         }
-        read_spline_lat.close();
+        read_outerspline_lat.close();
 
-        // Read spline longitudes from file
-        ifstream read_spline_lon(spline_lon_file_path);
-        if (!read_spline_lon.is_open()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", spline_lon_file_path.c_str());
+        // Read outer spline longitutdes from file
+        ifstream read_outerspline_lon(outerspline_lon_file_path);
+        if (!read_outerspline_lon.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", outerspline_lon_file_path.c_str());
             return;
         }
-
-        while (read_spline_lon >> value) {
-            spline_lon_vec.push_back(value);
+        while (read_outerspline_lon >> value) {
+            outerspline_lon_vec.push_back(value);
         }
-        read_spline_lon.close();
+        read_outerspline_lon.close();
+
+        // Read inner spline latitudes from file
+        ifstream read_innerspline_lat(innerspline_lat_file_path);
+        if (!read_innerspline_lat.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", innerspline_lat_file_path.c_str());
+            return;
+        }
+        while (read_innerspline_lat >> value) {
+            innerspline_lat_vec.push_back(value);
+        }
+        read_innerspline_lat.close();
+
+        // Read inner spline longitutdes from file
+        ifstream read_innerspline_lon(innerspline_lon_file_path);
+        if (!read_innerspline_lon.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", innerspline_lon_file_path.c_str());
+            return;
+        }
+        while (read_innerspline_lon >> value) {
+            innerspline_lon_vec.push_back(value);
+        }
+        read_innerspline_lon.close();
+
 
         // Check if latitude and longitude vectors are the same size
         if (latitude_vec.size() != longitude_vec.size()) {
@@ -294,10 +280,24 @@ private:
             return;
         }
 
-        // Check if latitude and longitude vectors are the same size
-        if (spline_lat_vec.size() != spline_lon_vec.size()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Spline Latitude and Longitude vectors are not of equal size.");
+        // Check if outer spline latitude and longitude vectors are the same size
+        if (outerspline_lat_vec.size() != outerspline_lon_vec.size()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Outer Spline Latitude and Longitude vectors are not of equal size.");
             return;
+        }
+
+        // Check if inner spline latitude and longitude vectors are the same size
+        if (innerspline_lat_vec.size() != innerspline_lon_vec.size()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Inner Spline Latitude and Longitude vectors are not of equal size.");
+            return;
+        }
+
+        for(size_t i=0; i<outerspline_lat_vec.size(); i++) {
+            outerspline_vec.push_back({outerspline_lat_vec[i], outerspline_lon_vec[i]});
+        }
+
+        for(size_t i=0; i<innerspline_lat_vec.size(); i++) {
+            innerspline_vec.push_back({innerspline_lat_vec[i], innerspline_lon_vec[i]});
         }
     }
 
@@ -339,8 +339,12 @@ private:
 
     vector<double> longitude_vec;  // Vector to store longitudes
     vector<double> latitude_vec;  // Vector to store latitudes
-    vector<double> spline_lon_vec;
-    vector<double> spline_lat_vec;
+    vector<double> outerspline_lon_vec;
+    vector<double> outerspline_lat_vec;
+    vector<double> innerspline_lon_vec;
+    vector<double> innerspline_lat_vec;
+    vector<array<double, 2>> outerspline_vec;
+    vector<array<double, 2>> innerspline_vec;
 
     int counter = 0;
 };

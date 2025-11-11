@@ -108,9 +108,6 @@ private:
         // RCLCPP_INFO(this->get_logger(), "waypoint_latidtude: %.6f, waypoint_longitude: %.6f", waypoint_latitude, waypoint_longitude);
         
         get_next_waypoint();
-        // Convert GPS (latitude, longitude) to a local coordinate system
-        // double waypoint_x = (waypoint_latitude - origin_latitude_) * meters_per_degree_;
-        // double waypoint_y = (waypoint_longitude - origin_longitude_) * meters_per_degree_;
 
         move_waypoint();
 
@@ -126,6 +123,69 @@ private:
         waypoint_publisher_->publish(waypoint_msg);
     }
 
+    // -------------------- Main algorithm integration --------------------
+    void move_waypoint()
+    {
+        // Find nearest inner/outer spline points
+        auto result = find_adjacent_lines();
+        size_t outer_idx = get<0>(result);
+        double outer_dist_m = get<1>(result);
+        size_t inner_idx = get<2>(result);
+        double inner_dist_m = get<3>(result);
+
+        double track_width_m = computeDistanceMeters(
+            innerspline_vec[inner_idx][0], innerspline_vec[inner_idx][1],
+            outerspline_vec[outer_idx][0], outerspline_vec[outer_idx][1]);
+
+        double d_center_m = 0.5 * (outer_dist_m - inner_dist_m);
+        double w_half = 0.5 * track_width_m;
+        double effective_halfwidth = w_half - 0.5 * w_vehicle;
+        if (effective_halfwidth < 0.1) effective_halfwidth = w_half;
+
+        double centerness = d_center_m / (effective_halfwidth + EPS);
+        centerness = std::max(-1.0, std::min(1.0, centerness));
+
+        // Heading from last kart position to current
+        double heading_rad = computeHeadingFromWaypoints(last_kart_latitude, last_kart_longitude,
+                                                         current_latitude_, current_longitude_);
+
+        // Lateral shift Δ
+        double delta_center = -K_e * sat(centerness, B);
+        double delta_turn = K_theta * copysign(1.0, theta_ahead_) * w_half *
+                            (1 - exp(-fabs(theta_ahead_) / theta_0)) *
+                            f_L(L_measured_);
+        double delta = delta_center + delta_turn;
+
+        // Clip delta to safe region
+        double delta_max = effective_halfwidth - s_safety;
+        delta = std::max(-delta_max, std::min(delta_max, delta));
+
+        // Left-normal vector
+        double n_x = -sin(heading_rad);
+        double n_y = cos(heading_rad);
+
+        double dX = delta * n_x; // east meters
+        double dY = delta * n_y; // north meters
+
+        double delta_lat = (dY / R_earth) * 180.0 / M_PI;
+        double delta_lon = (dX / (R_earth * cos(waypoint_latitude * M_PI / 180.0))) * 180.0 / M_PI;
+
+        waypoint_latitude += delta_lat;
+        waypoint_longitude += delta_lon;
+
+        RCLCPP_INFO(this->get_logger(), "Lateral Δ=%.3f m -> Δlat %.8f° Δlon %.8f°",
+                    delta, delta_lat, delta_lon);
+    }
+
+    // -------------------- Helpers --------------------
+    inline double sat(double e, double B) {
+        return (fabs(e) <= B) ? 0.0 : e - copysign(B, e);
+    }
+
+    inline double f_L(double L) {
+        return std::min(L, L_max) / L;
+    }
+
     double normalize_angle(double angle){
         if (angle < - M_PI) {
             angle += 2 * M_PI;
@@ -136,12 +196,20 @@ private:
         return angle;
     }
 
-    void move_waypoint(){
-        auto [outer_index, outer_dist, inner_index, inner_dist] = find_adjacent_lines();
-        RCLCPP_INFO(this->get_logger(), "inner index vs outer index, %zu vs %.zu", inner_index, outer_index);
-        RCLCPP_INFO(this->get_logger(), "inner dist vs outer dist, %.10f vs %.10f", inner_dist, outer_dist);
-        return;
+    double computeDistanceMeters(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg) const {
+        double phi1 = lat1_deg * M_PI / 180.0;
+        double phi2 = lat2_deg * M_PI / 180.0;
+        double dlat = (lat2_deg - lat1_deg) * meters_per_degree_;
+        double dlon = (lon2_deg - lon1_deg) * meters_per_degree_;
+        return sqrt(dlat * dlat + dlon * dlon);
     }
+
+    double computeHeadingFromWaypoints(double latA_deg, double lonA_deg, double latB_deg, double lonB_deg) const {
+        double dy = (latB_deg - latA_deg) * meters_per_degree_;
+        double dx = (lonB_deg - lonA_deg) * meters_per_degree_;
+        return atan2(dy, dx);
+    }
+
 
     std::tuple<size_t, double, size_t, double> find_adjacent_lines(){
         size_t outer_min_index = 0;
@@ -150,14 +218,14 @@ private:
         double inner_min_dist = std::numeric_limits<double>::max();
         double dist;
         for (size_t i=0; i < outerspline_vec.size();i++){
-            dist = (current_latitude_ - outerspline_vec[i][0]) * (current_latitude_ - outerspline_vec[i][0]) + (current_longitude_ - outerspline_vec[i][1]) * (current_longitude_ - outerspline_vec[i][1]);
+            dist = ((current_latitude_ - outerspline_vec[i][0]) * meters_per_degree_) * ((current_latitude_ - outerspline_vec[i][0])*meters_per_degree_) + ((current_longitude_ - outerspline_vec[i][1])*meters_per_degree_) * ((current_longitude_ - outerspline_vec[i][1])*meters_per_degree_);
             if (dist < outer_min_dist){
                 outer_min_dist = dist;
                 outer_min_index = i;
             }
         }
         for (size_t i=0; i < innerspline_vec.size();i++){
-            dist = (current_latitude_ - innerspline_vec[i][0]) * (current_latitude_ - innerspline_vec[i][0]) + (current_longitude_ - innerspline_vec[i][1]) * (current_longitude_ - innerspline_vec[i][1]);
+            dist = ((current_latitude_ - innerspline_vec[i][0])*meters_per_degree_) * ((current_latitude_ - innerspline_vec[i][0])*meters_per_degree_) + ((current_longitude_ - innerspline_vec[i][1])*meters_per_degree_) * ((current_longitude_ - innerspline_vec[i][1])*meters_per_degree_);
             if (dist < inner_min_dist){
                 inner_min_dist = dist;
                 inner_min_index = i;
@@ -331,10 +399,23 @@ private:
     const double origin_latitude_ = 40.437688;
     const double origin_longitude_ = -86.944469;
 
-    const double meters_per_degree_ = 111000.0;
-
     const double offset_latitude = 0.00004;
     const double offset_longitude = 0.00004;
+
+    // Algorithm parameters
+    double theta_ahead_ = 0.25;   // radians, can be updated from vision/track info
+    double L_measured_ = 3.0;     // meters, distance to next waypoint
+
+    const double w_vehicle = 0.5;
+    const double EPS = 1e-6;
+    const double K_e = 0.6;
+    const double B = 0.05;
+    const double K_theta = 0.6;
+    const double theta_0 = 0.25;
+    const double L_max = 9.0;
+    const double s_safety = 0.2;
+    const double R_earth = 6378137.0;
+    const double meters_per_degree_ = 111000.0;
 
 
     vector<double> longitude_vec;  // Vector to store longitudes

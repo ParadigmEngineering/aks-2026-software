@@ -239,8 +239,11 @@ private:
         std::string package_share_path = ament_index_cpp::get_package_share_directory("ros_nav");
         std::string latitude_file_path = package_share_path + "/data/latitudes_minimal.txt";
         std::string longitude_file_path = package_share_path + "/data/longitudes_minimal.txt";
-        std::string spline_lat_file_path = package_share_path + "/data/latitudes_spline.txt";
-        std::string spline_lon_file_path = package_share_path + "/data/longitudes_spline.txt";
+        std::string outer_latitude_file_path = package_share_path + "/data/outterlat_spline.txt";
+        std::string outer_longitude_file_path = package_share_path + "/data/outterlon_spline.txt";
+        std::string inner_latitude_file_path = package_share_path + "/data/innerlat_spline.txt";
+        std::string inner_longitude_file_path = package_share_path + "/data/innerlon_spline.txt";
+
 
         // Read latitudes from file
         ifstream read_latitude(latitude_file_path);
@@ -265,40 +268,73 @@ private:
         }
         read_longitude.close();
 
-        // Read spline latitudes from file
-        ifstream read_spline_lat(spline_lat_file_path);
-        if (!read_spline_lat.is_open()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", spline_lat_file_path.c_str());
-            return;
-        }
-        while (read_spline_lat >> value) {
-            spline_lat_vec.push_back(value);
-        }
-        read_spline_lat.close();
-
-        // Read spline longitudes from file
-        ifstream read_spline_lon(spline_lon_file_path);
-        if (!read_spline_lon.is_open()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", spline_lon_file_path.c_str());
-            return;
-        }
-
-        while (read_spline_lon >> value) {
-            spline_lon_vec.push_back(value);
-        }
-        read_spline_lon.close();
-
         // Check if latitude and longitude vectors are the same size
         if (latitude_vec.size() != longitude_vec.size()) {
             RCLCPP_ERROR(this->get_logger(), "Error: Latitude and Longitude vectors are not of equal size.");
             return;
         }
 
-        // Check if latitude and longitude vectors are the same size
-        if (spline_lat_vec.size() != spline_lon_vec.size()) {
-            RCLCPP_ERROR(this->get_logger(), "Error: Spline Latitude and Longitude vectors are not of equal size.");
+        //
+
+        // Read outer spline latitudes from file
+        ifstream read_outer_latitude(outer_latitude_file_path);
+        if (!read_outer_latitude.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", outer_latitude_file_path.c_str());
             return;
         }
+        while (read_outer_latitude >> value) {
+            outer_latitude_vec.push_back(value);
+        }
+        read_outer_latitude.close();
+
+        // Read outer spline longitudes from file
+        ifstream read_outer_longitude(outer_longitude_file_path);
+        if (!read_outer_longitude.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", outer_longitude_file_path.c_str());
+            return;
+        }
+        while (read_outer_longitude >> value) {
+            outer_longitude_vec.push_back(value);
+        }
+        read_outer_longitude.close();
+
+        // Check if outer spline latitude and longitude vectors are the same size
+        if (outer_latitude_vec.size() != outer_longitude_vec.size()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Outer Spline Latitude and Longitude vectors are not of equal size.");
+            return;
+        }
+
+        //
+
+        // Read inner spline latitudes from file
+        ifstream read_inner_latitude(inner_latitude_file_path);
+        if (!read_inner_latitude.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", inner_latitude_file_path.c_str());
+            return;
+        }
+        while (read_inner_latitude >> value) {
+            inner_latitude_vec.push_back(value);
+        }
+        read_inner_latitude.close();
+
+        // Read inner spline longitudes from file
+        ifstream read_inner_longitude(inner_longitude_file_path);
+        if (!read_inner_longitude.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Unable to open %s", inner_longitude_file_path.c_str());
+            return;
+        }
+        while (read_inner_longitude >> value) {
+            inner_longitude_vec.push_back(value);
+        }
+        read_inner_longitude.close();
+
+        // Check if inner spline latitude and longitude vectors are the same size
+        if (inner_latitude_vec.size() != inner_longitude_vec.size()) {
+            RCLCPP_ERROR(this->get_logger(), "Error: Inner Spline Latitude and Longitude vectors are not of equal size.");
+            return;
+        }
+
+
     }
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_subscriber_;
@@ -339,8 +375,11 @@ private:
 
     vector<double> longitude_vec;  // Vector to store longitudes
     vector<double> latitude_vec;  // Vector to store latitudes
-    vector<double> spline_lon_vec;
-    vector<double> spline_lat_vec;
+
+    vector<double> outer_latitude_vec;
+    vector<double> inner_latitude_vec;
+    vector<double> outer_longitude_vec;
+    vector<double> inner_longitude_vec;
 
     int counter = 0;
 };

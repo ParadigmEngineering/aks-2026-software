@@ -1,4 +1,7 @@
 from IPython import *
+#IMPORTANT: When running files which use IPython in the terminal, first enter 'ipython' to start the thing,
+#then enter '%run yolov8_test_w_image.py' to run this script.
+
 
 #!/usr/bin/env python
 # coding: utf-8
@@ -12,7 +15,7 @@ from IPython import *
 # In[6]:
 
 
-#get_ipython().run_line_magic('cd', 'Users\\blhco\\paradigm_cvision\\datasets\\runs\\segment\\train6\\weights')
+get_ipython().run_line_magic('cd', 'datasets//White-Line-Detection_v4//runs//segment//train2//weights')
 #Change this to the location of the 'weights' folder on your computer
 
 

@@ -5,3 +5,4 @@
 .vscode
 .venv
 
+computer_vision/datasets/runs/segment/train6/weights/*.mp4

@@ -2,13 +2,21 @@ import cv2
 import math
 from ultralytics import YOLO
 
+#Checks which camera indexes are available
+#for camera_idx in range(10): 
+#    cap = cv2.VideoCapture(camera_idx)
+#    if cap.isOpened():
+#        print(f"Camera index available: {camera_idx}")
+#        cap.release() 
+
 #Start Webcam
-cap = cv2.VideoCapture(0) #0 for webcam, 'filename.mp4' for video, Unsure for zed2 right now
+cap = cv2.VideoCapture(0) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
 cap.set(3, 640)
 cap.set(4,480)
 
-model = YOLO("best.pt")
 #Pathway to the yolo model from where this file is in your computer
+model = YOLO("datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt") 
+#C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
 
 #Object classes
 classNames = ["white line"]
@@ -28,9 +36,9 @@ while True:
         for box in boxes:
             # confidence
             confidence = math.ceil((box.conf[0] * 100)) / 100
-            print("Confidence --->", confidence)
             if confidence <= 0.5: #Only displays a box if white line detection is over a certain confidence level
                 continue
+            print("Confidence --->", confidence)
 
             # bounding box
             x1, y1, x2, y2 = box.xyxy[0]
@@ -42,6 +50,10 @@ while True:
             # class name
             cls = int(box.cls[0])
             print("Class name -->", classNames[cls])
+
+            # pixel coordinates of white line objects
+            coords = r.masks.xy
+            print("Pixel coordinates -->", coords)
 
             # object details
             org = [x1, y1]

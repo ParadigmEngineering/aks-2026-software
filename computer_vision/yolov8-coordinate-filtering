@@ -8,7 +8,7 @@ cap.set(3, 640)
 cap.set(4,480)
 
 
-model = YOLO(R"C:\Users\Hunte\OneDrive\Desktop\aks-2026-software-main\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights\best.pt")
+model = YOLO()
 #Pathway to the yolo model from where this file is in your computer
 
 #Object classesq

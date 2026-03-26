@@ -4,6 +4,7 @@ import cv2
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Point ## If this breaks something for you, get rid off all this stuff
 
 class LaneDetector(Node):
     def __init__(self):
@@ -16,14 +17,34 @@ class LaneDetector(Node):
             10
         )
 
+        self.lane_center_pub = self.create_publisher(Point, 'lane_center', 10)
+
+        self.test_timer = self.create_timer(1.0, self.publish_test_lane_center)
+
+
         self.br = CvBridge()
         self.get_logger().info('Lane Detector node established')
     
+    def publish_test_lane_center(self):
+        lane_center_msg = Point()
+        lane_center_msg.x = 0.0 
+        lane_center_msg.y = 0.0 
+        lane_center_msg.z = 0.0
+        self.lane_center_pub.publish(lane_center_msg)
+        self.get_logger().info('Published test lane center')
+
     def image_callback(self, data):
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding='bgr8')
         processed_image = self.detect_lanes(current_frame)
         cv2.imshow("Lane Detection Feed", processed_image)
         cv2.waitKey(1)
+        
+        ## Eventually do something in here maybe
+        # lane_center_msg = Point()
+        # lane_center_msg.x = 0.0  # Replace with actual lane center x
+        # lane_center_msg.y = 0.0  # Replace with actual lane center y
+        # lane_center_msg.z = 0.0  # Replace with actual lane center z if needed
+        # self.lane_center_pub.publish(lane_center_msg)
 
     def detect_lanes(self, frame):
         # Example: Convert to grayscale and find edges

@@ -1,6 +1,11 @@
 /build
 /install
 /log
+/src/log
+
+/src/build
+/src/install
+/src/log
 
 .vscode
 .venv

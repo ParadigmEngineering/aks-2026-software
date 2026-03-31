@@ -4,8 +4,9 @@
 #include "mavros_msgs/srv/set_mode.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "geographic_msgs/msg/geo_pose_stamped.hpp"
+#include "geometry_msgs/msg/point.hpp"
 #include <tf2/LinearMath/Quaternion.h> 
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include <fstream>
 #include <vector>
 #include <iostream>
@@ -21,6 +22,10 @@ public:
     WaypointPublisher() : Node("waypoint_publisher")
     {
         get_coords();
+
+        lane_center_subscriber_ = this->create_subscription<geometry_msgs::msg::Point>(
+            "lane_center", 10, std::bind(&WaypointPublisher::lane_center_callback, this, std::placeholders::_1));
+
         // Subscription to the kart's GPS position
         gps_subscriber_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
             "/mavros/global_position/global", rclcpp::SensorDataQoS(), std::bind(&WaypointPublisher::gps_callback, this, _1));
@@ -45,6 +50,11 @@ public:
     }
 
 private:
+    void lane_center_callback(const geometry_msgs::msg::Point::SharedPtr msg)
+    {
+        RCLCPP_INFO(this->get_logger(), "Received lane center: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+        // Use lane center data as needed
+    }
     void gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
     {
         if (isfinite(msg->latitude) && isfinite(msg->longitude)) {
@@ -373,6 +383,7 @@ private:
     rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>::SharedPtr waypoint_publisher_;
     rclcpp::Subscription<geographic_msgs::msg::GeoPoseStamped>::SharedPtr heading_subscriber_;
     rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr set_mode_client_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr lane_center_subscriber_;
     rclcpp::TimerBase::SharedPtr waypoint_timer_;
     rclcpp::TimerBase::SharedPtr services_timer_;
 

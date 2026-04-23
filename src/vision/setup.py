@@ -17,7 +17,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='dragonlungs',
-    maintainer_email='chelsea.ohara19@gmail.com',
+    maintainer_email='chelsea.ohara@mun.ca',
     description='TODO: Package description',
     license='TODO: License declaration',
     extras_require={

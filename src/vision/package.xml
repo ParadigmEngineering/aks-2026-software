@@ -4,7 +4,7 @@
   <name>vision</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="chelsea.ohara19@gmail.com">dragonlungs</maintainer>
+  <maintainer email="chelsea.ohara@mun.ca">dragonlungs</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>

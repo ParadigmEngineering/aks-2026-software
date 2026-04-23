@@ -7,6 +7,12 @@
 /src/install
 /src/log
 
+# Python stuff
+__pycache__/
+*.py[cod]
+
+# IDE stuff
+.idea/
 .vscode
 .venv
 

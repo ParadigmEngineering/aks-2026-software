@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'uart_bridge = kart_hardware.uart_bridge:main'
         ],
     },
 )

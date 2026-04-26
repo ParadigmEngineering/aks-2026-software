@@ -100,7 +100,7 @@ class LaneDetector(Node):
                 confidence_score = float(r.boxes.conf[i])
 
                 # don't process trash / empties
-                if confidence_score < 0.5 || len(mask == 0):
+                if confidence_score < 0.5 || len(mask) == 0:
                     continue
                 
                 avg_x = sum(pt[0] for pt in mask) / len(mask)

@@ -32,7 +32,7 @@ colcon build
 
 ## Updates
 
-_coming soon_
+- Must downgrade numpy to <2.0.0
 
 ## Useful Resources
 

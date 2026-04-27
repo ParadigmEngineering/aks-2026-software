@@ -10,7 +10,25 @@ This repository also contains the code for training the line-detection computer 
 
 ## Installation
 
-_coming soon_
+These instructions are for installing the core ROS2 software for autonomous control of the kart. They have been tested on Ubuntu 22 on a dev device and on the Jetson. Windows installs may differ.
+
+For instructions on installing the Computer Vision training and lane detection code, see the dedicated README.
+
+x. clone repo (ssh keys recommended)
+x. install ros
+x. Get zed-ros2 submodules
+
+```bash
+git submodule update --init --recursive
+```
+x. install dependencies
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+```
+x. build
+```bash
+colcon build
+```
 
 ## Updates
 

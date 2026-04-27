@@ -12,7 +12,7 @@ class LaneDetector(Node):
     def __init__(self):
         super().__init__('lane_detector')
 
-        path_to_model = '/home/dragonlungs/Code/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
         self.bridge = CvBridge()
         self.latest_depth_map = None
@@ -22,7 +22,7 @@ class LaneDetector(Node):
 
         self.image_subscription = self.create_subscription(
             Image,
-            'zed/zed_node/rgb/image_rect_color',
+            'zed/zed_node/rgb/color/rect/image',
             self.image_callback,
             10
         )
@@ -36,7 +36,7 @@ class LaneDetector(Node):
 
         self.lane_center_pub = self.create_publisher(Point, 'lane_center', 10)
 
-        self.test_timer = self.create_timer(1.0, self.publish_test_lane_center)
+        #self.test_timer = self.create_timer(1.0, self.publish_test_lane_center)
         
         self.get_logger().info('Lane Detector node established')
     
@@ -100,7 +100,7 @@ class LaneDetector(Node):
                 confidence_score = float(r.boxes.conf[i])
 
                 # don't process trash / empties
-                if confidence_score < 0.5 || len(mask) == 0:
+                if confidence_score < 0.5 or len(mask) == 0:
                     continue
                 
                 avg_x = sum(pt[0] for pt in mask) / len(mask)

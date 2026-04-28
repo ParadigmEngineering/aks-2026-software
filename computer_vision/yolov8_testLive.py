@@ -16,20 +16,20 @@ warning_threshold = 0.8
 confidence_threshold = 0.5
 
 #Checks which camera indexes are available
-#for camera_idx in range(10): 
-#    cap = cv2.VideoCapture(camera_idx)
-#    if cap.isOpened():
-#        print(f"Camera index available: {camera_idx}")
-#        cap.release() 
+for camera_idx in range(10): 
+   cap = cv2.VideoCapture(camera_idx)
+   if cap.isOpened():
+       print(f"Camera index available: {camera_idx}")
+       cap.release() 
 
 #Start Camera
-# cap = cv2.VideoCapture(1) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
-# cap.set(3, res_x) #resolution x-value
-# cap.set(4, res_y) #resolution y-value
+cap = cv2.VideoCapture(0) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
+cap.set(3, res_x) #resolution x-value
+cap.set(4, res_y) #resolution y-value
 
-# if not cap.isOpened():
-#    print("Couldn't open camera")
-#    exit()
+if not cap.isOpened():
+   print("Couldn't open camera")
+   exit()
 
 #Pathway to the yolo model from where this file is in your computer
 model = YOLO("datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt") 
@@ -40,12 +40,12 @@ classNames = ["white line"]
 
 while True:
     #Camera
-    # success, img = cap.read()
+    success, img = cap.read()
     
     #Screen Recording
-    cap =  ImageGrab.grab(bbox = (0, 0, int(res_x / 2), res_y))
-    img = np.array(cap.getdata(),dtype='uint8').reshape((cap.size[1],cap.size[0],3))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # cap =  ImageGrab.grab(bbox = (0, 0, int(res_x / 2), res_y))
+    # img = np.array(cap.getdata(),dtype='uint8').reshape((cap.size[1],cap.size[0],3))
+    # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     results, = model(img, stream=True)
     whiteLine_num = 0

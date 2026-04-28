@@ -34,7 +34,7 @@ class LaneDetector(Node):
             10
         )
 
-        self.lane_center_pub = self.create_publisher(Point, 'lane_center', 10)
+        self.lane_center_pub = self.create_publisher(Point, 'lane_center', 1)
 
         #self.test_timer = self.create_timer(1.0, self.publish_test_lane_center)
         
@@ -68,8 +68,13 @@ class LaneDetector(Node):
             msg.x = float(cross_track_error)
             msg.y = float(confidence_score)
             msg.z = 0.0
-
-            self.lane_center_pub.publish(msg)
+            
+        else:
+            msg.x = 0.0
+            msg.y = 0.0
+            msg.z = -1.0 # use as error flag -- throw out
+        
+        self.lane_center_pub.publish(msg)
     
     def depth_callback(self, data):
         """

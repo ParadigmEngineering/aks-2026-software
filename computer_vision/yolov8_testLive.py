@@ -8,6 +8,8 @@ from ultralytics import YOLO
 KART_WIDTH = 52
 GROUND_TO_CAMERA = 22
 BUMPER_TO_CAMERA = 30
+# Zed 2 res: 1280, 720, pixel size 2um x 2um
+# zed 2 lens size: 2mm
 
 res_x = 1920
 res_y = 1080
@@ -51,13 +53,12 @@ while True:
     whiteLine_num = 0
 
     rightLine = []
-    rightLineAvg = 0
+    rightLineAvgX = 0
+    rightLineAvgY = 0
 
     leftLine = []
-    leftLineAvg = 0
-
-    box1_xSum = 0
-    box2_xSum = 0
+    leftLineAvgX = 0
+    leftLineAvgY = 0
 
     # coordinates
     for r in results:
@@ -90,68 +91,73 @@ while True:
 
             x_coordSum = 0
             x_coordAvg = 0
+            y_coordSum = 0
+            y_coordAvg = 0
             count = 0
+
             for coordinate in coords:
                 for element in coordinate:
                     x_coordSum += element[0]
+                    y_coordSum += element[1]
                     count += 1
             x_coordAvg = x_coordSum / count
+            y_coordAvg = y_coordSum / count
 
-            if whiteLine_num == 1: #Set the first detection as the left line 
-                leftLine = coords
-                leftLineAvg = x_coordAvg
-
-            elif whiteLine_num >= 2:
-                if leftLineAvg >= x_coordAvg: #If the current left line average is to the right of x_coordAvg
-                    rightLineAvg = leftLineAvg
-                    rightLine = leftLine
-                    leftLineAvg = x_coordAvg
+            #Set the first whiteline as left or right depending on if their average x value falls left or right of the middle of the screen
+            if whiteLine_num == 1: 
+                if x_coordAvg < (middle_x):
                     leftLine = coords
-                else: #If the current left line average is to the left of x_coordAvg
-                    rightLineAvg = x_coordAvg
+                    leftLineAvgX = x_coordAvg
+                    leftLineAvgY = y_coordAvg
+                else:
                     rightLine = coords
+                    rightLineAvgX = x_coordAvg
+                    rightLineAvgY = y_coordAvg
+
+            #If the second whiteline has an average further left/right than the first whiteline, 
+            #label it as that left/right line and use the first whiteline as the opposite whiteline
+            if whiteLine_num == 2:
+                if leftLineAvgX != 0:
+                    if x_coordAvg < leftLineAvgX:
+                        rightLine = leftLine
+                        rightLineAvgX = leftLineAvgX
+                        rightLineAvgY = leftLineAvgY
+                        leftLine = coords
+                        leftLineAvgX = x_coordAvg
+                        leftLineAvgY = y_coordAvg
+                    else:
+                        rightLine = coords
+                        rightLineAvgX = x_coordAvg
+                        rightLineAvgY = y_coordAvg
+
+                elif rightLineAvgX != 0:
+                    if x_coordAvg > rightLineAvgX:
+                        leftLine = rightLine
+                        leftLineAvgX = rightLineAvgX
+                        leftLineAvgY = rightLineAvgY
+                        rightLine = coords
+                        rightLineAvgX = x_coordAvg
+                        rightLineAvgY = y_coordAvg
+                    else:
+                        leftLine = coords
+                        leftLineAvgX = x_coordAvg
+                        leftLineAvgY = y_coordAvg
+
+            #If a whiteline detection has a x value average that is further left/right than the currently labeled left/right lines, 
+            #check if it has a higher y value average (closer to the camera), if so use it to replace the old line
+            elif whiteLine_num > 2:
+                if x_coordAvg < leftLineAvgX:
+                    if y_coordAvg > leftLineAvgY:
+                        leftLine = coords
+                        leftLineAvgX = x_coordAvg
+                        leftLineAvgY = y_coordAvg
+                elif x_coordAvg > rightLineAvgX:
+                    if y_coordAvg > rightLineAvgY:
+                        rightLine = coords
+                        rightLineAvgX = x_coordAvg
+                        rightLineAvgY = y_coordAvg
 
             # print("Average x coordinate of White Line " + str(whiteLine_num) + ": " + str(x_coordAvg))
-
-            #Crunch coordinates 
-            # centerList = []
-            # xList = []
-            # savedX = 0
-            # horizontalLineCheck = 0
-            # for o in coords:
-            #     xList = []
-            #     savedX = 0
-            #     for i in o:
-            #         if i[1] >= int(res_y / 2) or i[1] <= int(res_y * 0.66): #first value for center and second value for 2 thirds up.
-            #             if i[0] not in xList:
-            #                 xList.append(i[0])
-            #                 if i[0] == savedX:
-            #                     print("Already Saved")
-            #                     horizontalLineCheck += 1
-            #                     if horizontalLineCheck > 5 and i[1] == 400:
-            #                         print("Sharp Turn Approaching")
-            #                         horizontalLineCheck = 0
-            #                     elif horizontalLineCheck != 5:
-            #                         print("No curve yet")
-                            
-            #                 elif i[0] > savedX * 1.05:
-            #                     #Gap detected
-            #                     print("gap")
-            #                     center = savedX + (i[0]-savedX)/2
-            #                     centerXY = [center,i[1]]
-            #                     if centerXY not in centerList:
-            #                         centerList.append(centerXY) 
-            #                         savedX = i[0]
-            #                         horizontalLineCheck = 0
-            #                     else:
-            #                         savedX = i[0]
-            #                         horizontalLineCheck = 0
-
-            #                 else:
-            #                     print("Same line")
-            #             else:
-            #                 print("Unkown Error")
-            # print(centerList)
 
             # object details
             org = [x1, y1]

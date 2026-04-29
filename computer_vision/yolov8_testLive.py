@@ -151,6 +151,8 @@ while True:
 
     lateralOffsetRatio = 0
     lateralOffsetRatio = (min(abs((bottomRight_x - middle_x)), abs((middle_x - bottomLeft_x))) - (middle_x)) / (middle_x)
+    if abs((bottomRight_x - middle_x)) < abs((middle_x - bottomLeft_x)):
+        lateralOffsetRatio = lateralOffsetRatio * -1.0
     print("Lateral Offset Ratio: " + str(lateralOffsetRatio))
 
     middleTrackWidth = TRACK_WIDTH / 2

@@ -8,6 +8,7 @@ from ultralytics import YOLO
 KART_WIDTH = 52
 GROUND_TO_CAMERA = 22
 BUMPER_TO_CAMERA = 30
+TRACK_WIDTH = 177.165
 # Zed 2 res: 1280, 720, pixel size 2um x 2um
 # zed 2 lens size: 2mm
 
@@ -52,13 +53,7 @@ while True:
     results, = model(img, stream=True)
     whiteLine_num = 0
 
-    rightLine = []
-    rightLineAvgX = 0
-    rightLineAvgY = 0
-
-    leftLine = []
-    leftLineAvgX = 0
-    leftLineAvgY = 0
+    valid_lines = []
 
     # coordinates
     for r in results:
@@ -91,73 +86,24 @@ while True:
 
             x_coordSum = 0
             x_coordAvg = 0
-            y_coordSum = 0
-            y_coordAvg = 0
             count = 0
 
             for coordinate in coords:
                 for element in coordinate:
                     x_coordSum += element[0]
-                    y_coordSum += element[1]
                     count += 1
             x_coordAvg = x_coordSum / count
-            y_coordAvg = y_coordSum / count
 
-            #Set the first whiteline as left or right depending on if their average x value falls left or right of the middle of the screen
-            if whiteLine_num == 1: 
-                if x_coordAvg < (middle_x):
-                    leftLine = coords
-                    leftLineAvgX = x_coordAvg
-                    leftLineAvgY = y_coordAvg
-                else:
-                    rightLine = coords
-                    rightLineAvgX = x_coordAvg
-                    rightLineAvgY = y_coordAvg
+            all_points = [pt for segment in coords for pt in segment]
+            bottom_point = max(all_points, key=lambda pt: pt[1])
+            bottom_x = bottom_point[0]
+            bottom_x_str = "Bottom x: " + str(bottom_point[0]) + ", " + str(bottom_point[1])
 
-            #If the second whiteline has an average further left/right than the first whiteline, 
-            #label it as that left/right line and use the first whiteline as the opposite whiteline
-            if whiteLine_num == 2:
-                if leftLineAvgX != 0:
-                    if x_coordAvg < leftLineAvgX:
-                        rightLine = leftLine
-                        rightLineAvgX = leftLineAvgX
-                        rightLineAvgY = leftLineAvgY
-                        leftLine = coords
-                        leftLineAvgX = x_coordAvg
-                        leftLineAvgY = y_coordAvg
-                    else:
-                        rightLine = coords
-                        rightLineAvgX = x_coordAvg
-                        rightLineAvgY = y_coordAvg
-
-                elif rightLineAvgX != 0:
-                    if x_coordAvg > rightLineAvgX:
-                        leftLine = rightLine
-                        leftLineAvgX = rightLineAvgX
-                        leftLineAvgY = rightLineAvgY
-                        rightLine = coords
-                        rightLineAvgX = x_coordAvg
-                        rightLineAvgY = y_coordAvg
-                    else:
-                        leftLine = coords
-                        leftLineAvgX = x_coordAvg
-                        leftLineAvgY = y_coordAvg
-
-            #If a whiteline detection has a x value average that is further left/right than the currently labeled left/right lines, 
-            #check if it has a higher y value average (closer to the camera), if so use it to replace the old line
-            elif whiteLine_num > 2:
-                if x_coordAvg < leftLineAvgX:
-                    if y_coordAvg > leftLineAvgY:
-                        leftLine = coords
-                        leftLineAvgX = x_coordAvg
-                        leftLineAvgY = y_coordAvg
-                elif x_coordAvg > rightLineAvgX:
-                    if y_coordAvg > rightLineAvgY:
-                        rightLine = coords
-                        rightLineAvgX = x_coordAvg
-                        rightLineAvgY = y_coordAvg
-
-            # print("Average x coordinate of White Line " + str(whiteLine_num) + ": " + str(x_coordAvg))
+            valid_lines.append({
+                "x_coordAvg": x_coordAvg,
+                "bottom_x": bottom_x,
+                "bottom_x_str": bottom_x_str
+            })
 
             # object details
             org = [x1, y1]
@@ -175,34 +121,41 @@ while True:
             #cv2.line(img, (x_start, y_start), (x_end, y_end), (0, 255, 0), 3) # Draws a line between the top-left and bottom-right pixels
             cv2.putText(img, classNames[cls] + str(whiteLine_num), org, font, fontScale, color, thickness)
 
-    print("Left Line Coordinates:")
-    print(leftLine)
-    print("Right Line Coordinates")
-    print(rightLine)
-    
-    #Find the bottom left and right whiteline pixel coordinates, then calculate the lateral offset ratio using those coords plus the middle x coord of the image
-    minLeftY = 0
-    bottomLeft_x = 0
-    minRightY = 0
-    bottomRight_x = 0
-    
-    for coord in leftLine:
-        for element in coord:
-            if element[1] > minLeftY:
-                minLeftY = element[1]
-                bottomLeft_x = element[0]
-    for coord in rightLine:
-        for element in coord:
-            if element[1] > minRightY:
-                minRightY = element[1]
-                bottomRight_x = element[0]
+    if len(valid_lines) == 0:
+        continue
 
-    print("bottomLeft_x: " + str(bottomLeft_x))
-    print("bottomRight_x: " + str(bottomRight_x))
+    valid_lines.sort(key = lambda line: line["x_coordAvg"])
+
+    if len(valid_lines) < 2:
+        if valid_lines[0]["x_coordAvg"] < middle_x:
+            leftLine = valid_lines[0]
+            bottomLeft_x = leftLine["bottom_x"]
+        else:
+            rightLine = valid_lines[0]
+            bottomRight_x = rightLine["bottom_x"]
+    else:
+        leftLine = valid_lines[0]
+        bottomLeft_x = leftLine["bottom_x"]
+        rightLine = valid_lines[-1]
+        bottomRight_x = rightLine["bottom_x"]
+
+    if "leftLine" in locals():
+        print("Left Line:")
+        print("x_coordAvg:", leftLine["x_coordAvg"])
+        print(leftLine["bottom_x_str"])
+
+    if "rightLine" in locals():
+        print("Right Line:")
+        print("x_coordAvg:", rightLine["x_coordAvg"])
+        print(rightLine["bottom_x_str"])
 
     lateralOffsetRatio = 0
     lateralOffsetRatio = (min(abs((bottomRight_x - middle_x)), abs((middle_x - bottomLeft_x))) - (middle_x)) / (middle_x)
     print("Lateral Offset Ratio: " + str(lateralOffsetRatio))
+
+    middleTrackWidth = TRACK_WIDTH / 2
+    crossTrackError = middleTrackWidth * lateralOffsetRatio
+    print("Cross Track Error: " + str(crossTrackError))
             
     cv2.imshow('Webcam', img)
 

@@ -7,18 +7,31 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point ## If this breaks something for you, get rid off all this stuff
 
 from ultralytics import YOLO
+import torch
 
 class LaneDetector(Node):
     def __init__(self):
         super().__init__('lane_detector')
 
+        
+
+
         path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
         self.bridge = CvBridge()
         self.latest_depth_map = None
-
+        
         # load AI model
-        self.model = YOLO(path_to_model)
+        self.model = YOLO(path_to_engine, task='segment')
+
+        cuda_status = torch.cuda.is_available()
+        self.get_logger().info(f"CUDA STATUS: = {cuda_status}")
+        if cuda_status:
+            self.get_logger().info("GUCCI")
+            self.get_logger().info(f"PyTorch CUDA: {torch.cuda.get_device_name(0)}")
+            self.get_logger().info(f"V: {torch.version.cuda}")
+        self.get_logger().info(f"YOLO D: {self.model.device}")
 
         self.image_subscription = self.create_subscription(
             Image,
@@ -59,12 +72,13 @@ class LaneDetector(Node):
 
         current_frame = self.bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
         lane_data = self.detect_lanes(current_frame)
-        
+        msg = Point()
+
         if lane_data is not None:
             cross_track_error, confidence_score = lane_data
 
             # TODO: reassess data type -- keeping it in point format using x and y only
-            msg = Point()
+           
             msg.x = float(cross_track_error)
             msg.y = float(confidence_score)
             msg.z = 0.0

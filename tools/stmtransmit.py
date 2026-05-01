@@ -41,8 +41,8 @@ with serial.Serial(PORT, baudrate=BAUD, timeout=1) as s:
     print(f"Sending Jetson packets on {PORT} at {BAUD} baud")
 
     while True:
-        test_throttle = 1500
-        test_steering = 1500
+        test_throttle = 1600
+        test_steering = 1600
 
         flags = FLAG_AUTONOMOUS_ENABLE | FLAG_VALID_PATH  # 0x05
 

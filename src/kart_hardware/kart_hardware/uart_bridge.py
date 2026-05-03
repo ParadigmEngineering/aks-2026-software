@@ -19,7 +19,7 @@ class UartBridge(Node):
 
         # Default safe RC PWM values (1500 = neutral)
         self.current_throttle = 1500
-        self.current_steering = 2000
+        self.current_steering = 1500
 
         # 1. Initialize Serial
         try:

@@ -31,20 +31,20 @@ class ManeuverTest(Node):
             
         elif elapsed < 6.0:
             # Stage 1: Forward straight
-            msg.linear.x = 1530.0 # Slight throttle
+            msg.linear.x = 2000.0 # little more than light throttle
             msg.angular.z = 1500.0
             self.get_logger().info("FORWARD")
             
         elif elapsed < 9.0:
             # Stage 2: Steer Left
             msg.linear.x = 1530.0
-            msg.angular.z = 1400.0 # Left steering
+            msg.angular.z = 1000.0 # Left steering
             self.get_logger().info("LEFT")
             
         elif elapsed < 12.0:
             # Stage 3: Steer Right
             msg.linear.x = 1530.0
-            msg.angular.z = 1600.0 # Right steering
+            msg.angular.z = 2000.0 # Right steering
             self.get_logger().info("RIGHT")
             
         elif elapsed < 15.0:

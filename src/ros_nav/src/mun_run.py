@@ -18,7 +18,7 @@ class CircuitSeeker(Node):
         
         # 2. Waypoint Tracking Variables
         self.wp_index = 0  # Start at Point 1 (Index 0)
-        self.arrival_radius = 1  # Meters. How close the kart needs to get before targeting the next point
+        self.arrival_radius = 5  # Meters. How close the kart needs to get before targeting the next point
 
         # State Variables
         self.current_lat = None
@@ -110,7 +110,7 @@ class CircuitSeeker(Node):
         steering_pwm = max(1100, min(1900, steering_pwm))
 
         msg = Twist()
-        msg.linear.x = 1530.0 # Throttle: Slow forward
+        msg.linear.x = 2000.0 # Throttle: Slow forward
         msg.angular.z = float(steering_pwm)
         self.cmd_pub.publish(msg)
 

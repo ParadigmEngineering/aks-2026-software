@@ -98,7 +98,7 @@ class LaneDetector(Node):
         self.latest_depth_map = self.bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
         
 
-   def detect_lanes(self, frame):
+    def detect_lanes(self, frame):
         """
         run inference on provided frame and detect white lines of track lane edge
         :param frame: 

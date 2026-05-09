@@ -98,7 +98,7 @@ class LaneDetector(Node):
         self.latest_depth_map = self.bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
         
 
-    def detect_lanes(self, frame):
+   def detect_lanes(self, frame):
         """
         run inference on provided frame and detect white lines of track lane edge
         :param frame: 
@@ -123,32 +123,49 @@ class LaneDetector(Node):
                     continue
                 
                 avg_x = sum(pt[0] for pt in mask) / len(mask)
+                avg_y = sum(pt[1] for pt in mask) / len(mask) # <-- Added avg_y like the test script
 
                 bottom_point = max(mask, key=lambda pt: pt[1])
                 bottom_x = bottom_point[0]
 
                 valid_lines.append({
                     "avg_x": avg_x,
+                    "avg_y": avg_y,
                     "bottom_x": bottom_x,
                     "confidence_score": confidence_score
                 })
+                
         if len(valid_lines) < 2:
             return None
         
-        # sorts the list from lowest avg_x (leftmost) to highest avg_x (rightmost)
-        valid_lines.sort(key=lambda line: line["avg_x"])
+        # --- NEW LOGIC: Match the Vision Dev's Line Selection ---
+        left_candidates = []
+        right_candidates = []
 
-        left_line = valid_lines[0]
-        right_line = valid_lines[-1]
+        # 1. Split lines into left and right of the screen
+        for line in valid_lines:
+            if line["avg_x"] < middle_x:
+                left_candidates.append(line)
+            else:
+                right_candidates.append(line)
+
+        # 2. Safety check: We need at least one line on each side
+        if not left_candidates or not right_candidates:
+            return None 
+
+        # 3. Pick the line closest to the camera (highest avg_y) for each side
+        left_line = max(left_candidates, key=lambda line: line["avg_y"])
+        right_line = max(right_candidates, key=lambda line: line["avg_y"])
+        # --------------------------------------------------------
 
         bottom_left_x = left_line["bottom_x"]
         bottom_right_x = right_line["bottom_x"]
         
         # average confidence scores
-        confidence_score = (left_line["confidence_score"]+right_line["confidence_score"]) / 2.0
+        confidence_score = (left_line["confidence_score"] + right_line["confidence_score"]) / 2.0
 
         # compute Cross-Track Error (CTE)
-        lateral_offset_ratio = (min(abs((bottom_right_x - middle_x)), abs((middle_x - bottom_left_x))) - (middle_x))/(middle_x)
+        lateral_offset_ratio = (min(abs((bottom_right_x - middle_x)), abs((middle_x - bottom_left_x))) - (middle_x)) / (middle_x)
         
         # package results and return
         lane_data = (lateral_offset_ratio, confidence_score)

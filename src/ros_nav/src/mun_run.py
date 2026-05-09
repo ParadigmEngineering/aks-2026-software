@@ -1,4 +1,5 @@
 import rclpy
+from rclpy.qos import qos_profile_sensor_data
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float64
@@ -29,8 +30,8 @@ class CircuitSeeker(Node):
 
         # Publishers & Subscribers
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
-        self.gps_sub = self.create_subscription(NavSatFix, '/mavros/global_position/global', self.gps_cb, 10)
-        self.compass_sub = self.create_subscription(Float64, '/mavros/global_position/compass_hdg', self.compass_cb, 10)
+        self.gps_sub = self.create_subscription(NavSatFix, '/mavros/global_position/global', self.gps_cb, qos_profile_sensor_data)
+        self.compass_sub = self.create_subscription(Float64, '/mavros/global_position/compass_hdg', self.compass_cb, qos_profile_sensor_data)
 
         # Control Loop running at 10Hz
         self.timer = self.create_timer(0.1, self.control_loop)

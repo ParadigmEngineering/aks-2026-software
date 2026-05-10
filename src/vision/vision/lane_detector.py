@@ -19,7 +19,7 @@ class LaneDetector(Node):
         path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
         path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
-        TRACK_WIDTH = 168 # Changed
+        self.TRACK_WIDTH = 168 # Changed
 
         self.bridge = CvBridge()
         self.latest_depth_map = None
@@ -170,10 +170,10 @@ class LaneDetector(Node):
 
         ################################################################################ Changed
         if abs((bottom_right_x - middle_x)) < abs((middle_x - bottom_left_x)):         
-            lateralOffsetRatio = lateralOffsetRatio * -1.0
+            lateral_offset_Ratio = lateral_offset_Ratio * -1.0
         
-        middleTrackWidth = TRACK_WIDTH / 2
-        cross_track_error = middleTrackWidth * lateralOffsetRatio
+        middleTrackWidth = self.TRACK_WIDTH / 2
+        cross_track_error = middleTrackWidth * lateral_offset_Ratio
         ################################################################################ Changed
 
         # package results and return

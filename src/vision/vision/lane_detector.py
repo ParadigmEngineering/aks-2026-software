@@ -170,10 +170,10 @@ class LaneDetector(Node):
 
         ################################################################################ Changed
         if abs((bottom_right_x - middle_x)) < abs((middle_x - bottom_left_x)):         
-            lateral_offset_Ratio = lateral_offset_Ratio * -1.0
+            lateral_offset_ratio = lateral_offset_ratio * -1.0
         
         middleTrackWidth = self.TRACK_WIDTH / 2
-        cross_track_error = middleTrackWidth * lateral_offset_Ratio
+        cross_track_error = middleTrackWidth * lateral_offset_ratio
         ################################################################################ Changed
 
         # package results and return

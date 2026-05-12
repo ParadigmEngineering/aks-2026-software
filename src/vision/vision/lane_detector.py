@@ -19,6 +19,9 @@ class LaneDetector(Node):
         path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
         path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
+        self.TRACK_WIDTH = 163 # Changed
+        self.middle_track_width = self.TRACK_WIDTH / 2.0
+
         self.bridge = CvBridge()
         self.latest_depth_map = None
         
@@ -123,7 +126,7 @@ class LaneDetector(Node):
                     continue
                 
                 avg_x = sum(pt[0] for pt in mask) / len(mask)
-                avg_y = sum(pt[1] for pt in mask) / len(mask) # <-- Added avg_y like the test script
+                avg_y = sum(pt[1] for pt in mask) / len(mask)
 
                 bottom_point = max(mask, key=lambda pt: pt[1])
                 bottom_x = bottom_point[0]
@@ -134,10 +137,32 @@ class LaneDetector(Node):
                     "bottom_x": bottom_x,
                     "confidence_score": confidence_score
                 })
-                
+
         if len(valid_lines) < 2:
             return None
+
+        # if len(valid_lines) == 0:
+        #     return None
         
+        # sorts the list from lowest avg_x (leftmost) to highest avg_x (rightmost)
+        # valid_lines.sort(key=lambda line: line["avg_x"])
+
+        # if len(valid_lines) < 2:
+        #     if valid_lines[0]["x_coordAvg"] < middle_x:
+        #         left_line = valid_lines[0]
+        #         bottom_left_x = leftLine["bottom_x"]
+        #         bottom_right_x = width
+        #     else:
+        #         right_line = valid_lines[0]
+        #         bottom_right_x = rightLine["bottom_x"]
+        #         bottom_left_x = 0
+        # else:
+        # left_line = valid_lines[0]
+        # right_line = valid_lines[-1]
+
+        # bottom_left_x = left_line["bottom_x"]
+        # bottom_right_x = right_line["bottom_x"]
+
         # --- NEW LOGIC: Match the Vision Dev's Line Selection ---
         left_candidates = []
         right_candidates = []
@@ -162,13 +187,26 @@ class LaneDetector(Node):
         bottom_right_x = right_line["bottom_x"]
         
         # average confidence scores
-        confidence_score = (left_line["confidence_score"] + right_line["confidence_score"]) / 2.0
+        confidence_score = (left_line["confidence_score"]+right_line["confidence_score"]) / 2.0
 
         # compute Cross-Track Error (CTE)
-        lateral_offset_ratio = (min(abs((bottom_right_x - middle_x)), abs((middle_x - bottom_left_x))) - (middle_x)) / (middle_x)
-        
+        # lateral_offset_ratio = (min(abs((bottom_right_x - middle_x)), abs((middle_x - bottom_left_x))) - (middle_x))/(middle_x)
+
+        # if abs((bottom_right_x - middle_x)) < abs((middle_x - bottom_left_x)):         
+        #     lateralOffsetRatio = lateralOffsetRatio * -1.0
+
+        # middleTrackWidth = TRACK_WIDTH / 2
+        # cross_track_error = middleTrackWidth * lateralOffsetRatio
+
+        #------New CTE calculations-----------
+        lane_center = (bottom_left_x + bottom_right_x) / 2.0
+        lateral_offset_ratio = (lane_center - middle_x) / middle_x
+
+        cross_track_error = self.middle_track_width * lateral_offset_ratio
+        #-------------------------------------
+
         # package results and return
-        lane_data = (lateral_offset_ratio, confidence_score)
+        lane_data = (cross_track_error, confidence_score)
         return lane_data
 
 def main(args=None):
@@ -187,3 +225,5 @@ def main(args=None):
     
 if __name__ == '__main__':
     main()
+
+    

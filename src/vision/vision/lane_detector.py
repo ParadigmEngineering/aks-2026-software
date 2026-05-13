@@ -38,7 +38,7 @@ class LaneDetector(Node):
 
         self.image_subscription = self.create_subscription(
             Image,
-            'zed/zed_node/rgb/color/rect/image',
+            'zed/zed_node/rgb/color/rect/image', # TODO: test this with an unrectified image feed
             self.image_callback,
             10
         )
@@ -202,7 +202,9 @@ class LaneDetector(Node):
         lane_center = (bottom_left_x + bottom_right_x) / 2.0
         lateral_offset_ratio = (lane_center - middle_x) / middle_x
 
-        cross_track_error = self.middle_track_width * lateral_offset_ratio
+        lane_width_pixels = bottom_right_x - bottom_left_x
+        pixel_offset = lane_center - middle_x
+        cross_track_error = ((pixel_offset / lane_width_pixels) * self.TRACK_WIDTH)
         #-------------------------------------
 
         # package results and return

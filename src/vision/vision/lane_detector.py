@@ -58,6 +58,7 @@ class LaneDetector(Node):
     
     def publish_test_lane_center(self):
         lane_center_msg = Point()
+        lane_center_msg.w = 0.0
         lane_center_msg.x = 0.0 
         lane_center_msg.y = 0.0 
         lane_center_msg.z = 0.0
@@ -78,7 +79,7 @@ class LaneDetector(Node):
         msg = Point()
 
         if lane_data is not None:
-            cross_track_error, confidence_score = lane_data
+            turn_detected, cross_track_error, confidence_score = lane_data
 
             # TODO: reassess data type -- keeping it in point format using x and y only
             msg.w = float(turn_detected)

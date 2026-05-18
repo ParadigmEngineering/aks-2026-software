@@ -81,12 +81,13 @@ class LaneDetector(Node):
             cross_track_error, confidence_score = lane_data
 
             # TODO: reassess data type -- keeping it in point format using x and y only
-           
+            msg.w = float(turn_detected)
             msg.x = float(cross_track_error)
             msg.y = float(confidence_score)
             msg.z = 0.0
             
         else:
+            msg.w = 0.0 # no turn detected
             msg.x = 0.0
             msg.y = 0.0
             msg.z = -1.0 # use as error flag -- throw out
@@ -124,7 +125,15 @@ class LaneDetector(Node):
                 # don't process trash / empties
                 if confidence_score < 0.5 or len(mask) == 0:
                     continue
+
+                mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
+
+                mid = len(mask) // 2
+                bottomHalf = mask[:mid]
+                topHalf = mask[mid:]
                 
+                avg_x_bottomHalf = sum(pt[0] for pt in bottomHalf) / len(bottomHalf)
+                avg_x_topHalf = sum(pt[0] for pt in topHalf) / len(topHalf)
                 avg_x = sum(pt[0] for pt in mask) / len(mask)
                 avg_y = sum(pt[1] for pt in mask) / len(mask)
 
@@ -133,6 +142,8 @@ class LaneDetector(Node):
 
                 valid_lines.append({
                     "avg_x": avg_x,
+                    "avg_x_bottomHalf": avg_x_bottomHalf,
+                    "avg_x_topHalf": avg_x_topHalf,
                     "avg_y": avg_y,
                     "bottom_x": bottom_x,
                     "confidence_score": confidence_score
@@ -207,9 +218,20 @@ class LaneDetector(Node):
         cross_track_error = ((pixel_offset / lane_width_pixels) * self.TRACK_WIDTH)
         #-------------------------------------
 
+        #--------Turn Detection-------------
+        turn_detected = 0.0
+        
+        # left turn incoming
+        if (left_line["avg_x_bottomHalf"] - left_line["avg_x_topHalf"]) > 100: #This int will decide how soon you want to start slowing down
+            turn_detected = -1.0
+        # right turn incoming
+        elif (right_line["avg_x_topHalf"] - right_line["avg_x_bottomHalf"]) > 100: #This int will decide how soon you want to start slowing down
+            turn_detected = 1.0
+
         # package results and return
-        lane_data = (cross_track_error, confidence_score)
+        lane_data = (turn_detected, cross_track_error, confidence_score)
         return lane_data
+        #---------------------------------
 
 def main(args=None):
     """

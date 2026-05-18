@@ -130,8 +130,8 @@ class LaneDetector(Node):
                 mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
 
                 mid = len(mask) // 2
-                bottomHalf = mask[:mid]
-                topHalf = mask[mid:]
+                topHalf = mask[:mid]
+                bottomHalf = mask[mid:]
                 
                 avg_x_bottomHalf = sum(pt[0] for pt in bottomHalf) / len(bottomHalf)
                 avg_x_topHalf = sum(pt[0] for pt in topHalf) / len(topHalf)

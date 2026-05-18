@@ -39,7 +39,7 @@ class CircuitSeeker(Node):
 
     def load_waypoints(self):
         # Dynamically find your data folder and read the text files
-        base_path = os.path.expanduser('~/Code/GitHub/aks-2026-software/src/ros_nav/data/2025-2026/coic_run')
+        base_path = os.path.expanduser('~/Code/GitHub/aks-2026-software/src/ros_nav/data/2025-2026/purdue_run')
         
         try:
             with open(os.path.join(base_path, 'latitudes.txt'), 'r') as f:

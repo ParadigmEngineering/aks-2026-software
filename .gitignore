@@ -1,7 +1,18 @@
 /build
 /install
 /log
+/src/log
 
+/src/build
+/src/install
+/src/log
+
+# Python stuff
+__pycache__/
+*.py[cod]
+
+# IDE stuff
+.idea/
 .vscode
 .venv
 

@@ -1,6 +1,39 @@
-# aks2025-2026
+# AKS Software 2026
 
-This main repo is designed for ros foxy. If you use humble, you will need to talk to Jason and learn how to set up a repo for humble. There will be a template up soon named `main-humble` if
-we need one people might be using humble if they're on ubutnu 22. So when naming your branch, please just make it named `name-distro`. So for me, my main branch is `jason-foxy`. Main will likely shift between the two, but the jetson will run on humble. This translation to humble we will do during testing.
+**Paradigm Engineering - Software Team**
 
-A full humble migration will be done soon hopefully, allowing fo everyone to be on the same version before anyone needs to work on these things
+## About
+
+This is the main repo for ROS2 code that digests and processes sensor data for autonomous kart control. This repository uses [Humble-Hawksbill](https://docs.ros.org/en/humble/index.html) (Ubuntu 22.0) configured for the SeeedStudio Jetson.
+
+This repository also contains the code for training the line-detection computer vision model under the `computer_vision` subdirectory. For more information, see the dedicated README.
+
+## Installation
+
+These instructions are for installing the core ROS2 software for autonomous control of the kart. They have been tested on Ubuntu 22 on a dev device and on the Jetson. Windows installs may differ.
+
+For instructions on installing the Computer Vision training and lane detection code, see the dedicated README.
+
+x. clone repo (ssh keys recommended)
+x. install ros
+x. Get zed-ros2 submodules
+
+```bash
+git submodule update --init --recursive
+```
+x. install dependencies
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+```
+x. build
+```bash
+colcon build
+```
+
+## Updates
+
+- Must downgrade numpy to <2.0.0
+
+## Useful Resources
+
+_coming soon_

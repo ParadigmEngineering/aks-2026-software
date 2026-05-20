@@ -19,7 +19,7 @@ class LaneDetector(Node):
         path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
         path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
-        self.TRACK_WIDTH = 192 # Changed
+        self.TRACK_WIDTH = 163 # Changed
         self.middle_track_width = self.TRACK_WIDTH / 2.0
 
         self.bridge = CvBridge()

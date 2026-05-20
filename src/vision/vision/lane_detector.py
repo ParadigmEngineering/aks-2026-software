@@ -16,8 +16,8 @@ class LaneDetector(Node):
         
 
 
-        path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
-        path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
         self.TRACK_WIDTH = 163 # Changed
         self.middle_track_width = self.TRACK_WIDTH / 2.0
@@ -222,11 +222,11 @@ class LaneDetector(Node):
         #--------Turn Detection-------------
         turn_detected = 0.0
         
-        # left turn incoming
-        if (left_line["avg_x_bottomHalf"] - left_line["avg_x_topHalf"]) > 100: #This int will decide how soon you want to start slowing down
-            turn_detected = -1.0
         # right turn incoming
-        elif (right_line["avg_x_topHalf"] - right_line["avg_x_bottomHalf"]) > 100: #This int will decide how soon you want to start slowing down
+        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 100: #This int will decide how soon you want to start slowing down
+            turn_detected = -1.0
+        # left turn incoming
+        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 100: #This int will decide how soon you want to start slowing down
             turn_detected = 1.0
 
         # package results and return

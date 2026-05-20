@@ -4,38 +4,42 @@ import numpy as np
 from PIL import ImageGrab
 from ultralytics import YOLO
 
-#Kart measurements (in inches)
+# Kart measurements (in inches)
 KART_WIDTH = 52
 GROUND_TO_CAMERA = 22
 BUMPER_TO_CAMERA = 30
+TRACK_WIDTH = 163
+MIDDLE_TRACK_WIDTH = TRACK_WIDTH / 2
+# Zed 2 res: 1280, 720, pixel size 2um x 2um
+# zed 2 lens size: 2mm
 
 res_x = 1920
 res_y = 1080
-middle_x = res_x / 4
-warning_threshold = 0.8
+middle_x = res_x / 2
+#warning_threshold = 0.8
 confidence_threshold = 0.5
 
 #Checks which camera indexes are available
-for camera_idx in range(10): 
-   cap = cv2.VideoCapture(camera_idx)
-   if cap.isOpened():
-       print(f"Camera index available: {camera_idx}")
-       cap.release() 
+# for camera_idx in range(10): 
+#    cap = cv2.VideoCapture(camera_idx)
+#    if cap.isOpened():
+#        print(f"Camera index available: {camera_idx}")
+#        cap.release() 
 
 #Start Camera
-cap = cv2.VideoCapture(0) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
-cap.set(3, res_x) #resolution x-value
-cap.set(4, res_y) #resolution y-value
+# cap = cv2.VideoCapture(0) # Camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
+# cap.set(3, res_x) # Resolution x-value
+# cap.set(4, res_y) # Resolution y-value
 
 if not cap.isOpened():
    print("Couldn't open camera")
    exit()
 
-#Pathway to the yolo model from where this file is in your computer
-model = YOLO("datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt") 
-#C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
+# Pathway to the yolo model from where this file is in your computer
+model = YOLO("datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt") 
+# C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
 
-#Object classes
+# Object classes
 classNames = ["white line"]
 
 while True:
@@ -50,157 +54,182 @@ while True:
     results, = model(img, stream=True)
     whiteLine_num = 0
 
-    rightLine = []
-    rightLineAvg = 0
+    valid_lines = []
 
-    leftLine = []
-    leftLineAvg = 0
-
-    box1_xSum = 0
-    box2_xSum = 0
-
-    # coordinates
+    # Coordinates
     for r in results:
         boxes = r.boxes
         
         for box in boxes:
-            # confidence
+            # Confidence
             confidence = math.ceil((box.conf[0] * 100)) / 100
-            if confidence <= confidence_threshold: #Only displays a box if white line detection is over a certain confidence level
+            if confidence <= confidence_threshold: # Only displays a box if white line detection is over a certain confidence level
                 continue
             print("Confidence --->", confidence)
 
             whiteLine_num += 1
 
-            # bounding box
+            # Bounding box
             x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # Convert to int values
                 
-            # put box in cam
+            # Put box in cam
             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-            # class name
+            # Class name
             cls = int(box.cls[0])
             print("Class name -->", classNames[cls] + str(whiteLine_num))
 
-            # pixel coordinates of white line objects
+            # Pixel coordinates of white line objects
             coords = r.masks.xy
             # print("Pixel coordinates: White Line " + str(whiteLine_num))
             # print(coords)
 
             x_coordSum = 0
+            y_coordSum = 0
             x_coordAvg = 0
+            y_coordAvg = 0
             count = 0
+
+            # coords.sort(key = lambda y: y[pt[1]]) # Sort list by y-value ascending 
+
+            # mid = len(mask) // 2
+            # bottomHalf = mask[:mid]
+            # topHalf = mask[mid:]
+            
+            # avg_x_bottomHalf = sum(pt[0] for pt in bottomHalf) / len(bottomHalf)
+            # avg_x_topHalf = sum(pt[0] for pt in topHalf) / len(topHalf)
+            # avg_x = (avg_x_bottomHalf + avg_x_topHalf) / 2
+            # avg_y = sum(pt[1] for pt in mask) / len(mask)
+
             for coordinate in coords:
                 for element in coordinate:
                     x_coordSum += element[0]
+                    y_coordSum += element[1]
                     count += 1
             x_coordAvg = x_coordSum / count
+            y_coordAvg = y_coordSum / count
 
-            if whiteLine_num == 1: #Set the first detection as the left line 
-                leftLine = coords
-                leftLineAvg = x_coordAvg
+            all_points = [pt for segment in coords for pt in segment]
 
-            elif whiteLine_num >= 2:
-                if leftLineAvg >= x_coordAvg: #If the current left line average is to the right of x_coordAvg
-                    rightLineAvg = leftLineAvg
-                    rightLine = leftLine
-                    leftLineAvg = x_coordAvg
-                    leftLine = coords
-                else: #If the current left line average is to the left of x_coordAvg
-                    rightLineAvg = x_coordAvg
-                    rightLine = coords
+            bottom_point = max(all_points, key=lambda pt: pt[1]) # Take the bottom-most (aka biggest y-value) point
+            bottom_x = bottom_point[0] # Then store the its x value
+            bottom_x_str = "Bottom x: " + str(bottom_point[0]) + ", " + str(bottom_point[1]) 
 
-            # print("Average x coordinate of White Line " + str(whiteLine_num) + ": " + str(x_coordAvg))
+            valid_lines.append({
+                "x_coordAvg": x_coordAvg,
+                "y_coordAvg": y_coordAvg,
+                "bottom_x": bottom_x,
+                "bottom_x_str": bottom_x_str
+            })
 
-            #Crunch coordinates 
-            # centerList = []
-            # xList = []
-            # savedX = 0
-            # horizontalLineCheck = 0
-            # for o in coords:
-            #     xList = []
-            #     savedX = 0
-            #     for i in o:
-            #         if i[1] >= int(res_y / 2) or i[1] <= int(res_y * 0.66): #first value for center and second value for 2 thirds up.
-            #             if i[0] not in xList:
-            #                 xList.append(i[0])
-            #                 if i[0] == savedX:
-            #                     print("Already Saved")
-            #                     horizontalLineCheck += 1
-            #                     if horizontalLineCheck > 5 and i[1] == 400:
-            #                         print("Sharp Turn Approaching")
-            #                         horizontalLineCheck = 0
-            #                     elif horizontalLineCheck != 5:
-            #                         print("No curve yet")
-                            
-            #                 elif i[0] > savedX * 1.05:
-            #                     #Gap detected
-            #                     print("gap")
-            #                     center = savedX + (i[0]-savedX)/2
-            #                     centerXY = [center,i[1]]
-            #                     if centerXY not in centerList:
-            #                         centerList.append(centerXY) 
-            #                         savedX = i[0]
-            #                         horizontalLineCheck = 0
-            #                     else:
-            #                         savedX = i[0]
-            #                         horizontalLineCheck = 0
-
-            #                 else:
-            #                     print("Same line")
-            #             else:
-            #                 print("Unkown Error")
-            # print(centerList)
-
-            # object details
+            # Object details
             org = [x1, y1]
             font = cv2.FONT_HERSHEY_SIMPLEX
             fontScale = 1
             color = (255, 0, 0)
             thickness = 2
 
-            # colours in every detected pixel
+            # Colours in every detected pixel
             if r.masks is not None:
                 for segment in r.masks.xy:
                     polygon = np.array(segment, dtype=np.int32)
                     cv2.fillPoly(img, [polygon], (0,255,0)) 
 
-            #cv2.line(img, (x_start, y_start), (x_end, y_end), (0, 255, 0), 3) # Draws a line between the top-left and bottom-right pixels
             cv2.putText(img, classNames[cls] + str(whiteLine_num), org, font, fontScale, color, thickness)
 
-    print("Left Line Coordinates:")
-    print(leftLine)
-    print("Right Line Coordinates")
-    print(rightLine)
-    
-    #Find the bottom left and right whiteline pixel coordinates, then calculate the lateral offset ratio using those coords plus the middle x coord of the image
-    minLeftY = 0
-    bottomLeft_x = 0
-    minRightY = 0
-    bottomRight_x = 0
-    
-    for coord in leftLine:
-        for element in coord:
-            if element[1] > minLeftY:
-                minLeftY = element[1]
-                bottomLeft_x = element[0]
-    for coord in rightLine:
-        for element in coord:
-            if element[1] > minRightY:
-                minRightY = element[1]
-                bottomRight_x = element[0]
+    valid_lines.sort(key = lambda line: line["x_coordAvg"]) # Sort the valid detected lines by leftmost x_coordAvg to rightmost
 
-    print("bottomLeft_x: " + str(bottomLeft_x))
-    print("bottomRight_x: " + str(bottomRight_x))
+    if len(valid_lines) < 2:
+        cv2.imshow('Webcam', img)
 
-    lateralOffsetRatio = 0
-    lateralOffsetRatio = (min(abs((bottomRight_x - middle_x)), abs((middle_x - bottomLeft_x))) - (middle_x)) / (middle_x)
-    print("Lateral Offset Ratio: " + str(lateralOffsetRatio))
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+    # Of the detected valid lines, get the bottom x point of the leftmost and rightmost lines
+    # elif len(valid_lines) < 2:
+    #     if valid_lines[0]["x_coordAvg"] < middle_x:
+    #         leftLine = valid_lines[0]
+    #         bottomLeft_x = leftLine["bottom_x"]
+    #         bottomRight_x = res_x # If no rightLine, assume everything right of leftLine is track
+    #     else:
+    #         rightLine = valid_lines[0]
+    #         bottomRight_x = rightLine["bottom_x"]
+    #         bottomLeft_x = 0 # If no leftLine, assume everything left of rightLine is track
             
-    cv2.imshow('Webcam', img)
+    # else:
+    #     leftLine = valid_lines[0]
+    #     bottomLeft_x = leftLine["bottom_x"]
+    #     rightLine = valid_lines[-1]
+    #     bottomRight_x = rightLine["bottom_x"]
+    
+    left_candidates = []
+    right_candidates = []
 
-    if cv2.waitKey(1) == ord('q'): #Escape key
+    # 1. Split lines into left and right of the screen
+    for line in valid_lines:
+        if line["x_coordAvg"] < middle_x:
+            left_candidates.append(line)
+        else:
+            right_candidates.append(line)
+
+    # 2. Safety check: We need at least one line on each side
+    if left_candidates and right_candidates:
+
+        # 3. Pick the line closest to the camera (highest avg_y) for each side
+        left_line = max(left_candidates, key=lambda line: line["y_coordAvg"])
+        right_line = max(right_candidates, key=lambda line: line["y_coordAvg"])
+
+        bottom_left_x = left_line["bottom_x"]
+        bottom_right_x = right_line["bottom_x"]
+
+        # Print statements for debugging
+        if "left_line" in locals():
+            print("Left Line:")
+            print("x_coordAvg:", left_line["x_coordAvg"])
+            print(left_line["bottom_x_str"])
+
+        if "right_line" in locals():
+            print("Right Line:")
+            print("x_coordAvg:", right_line["x_coordAvg"])
+            print(right_line["bottom_x_str"])
+
+        # lane_center = (bottom_left_x + bottom_right_x) / 2.0
+        # lateral_offset_ratio = (lane_center - middle_x) / middle_x
+        # cross_track_error = MIDDLE_TRACK_WIDTH * lateral_offset_ratio
+
+        lane_center = (bottom_left_x + bottom_right_x) / 2.0
+        lateral_offset_ratio = (lane_center - middle_x) / middle_x
+        
+        lane_width_pixels = bottom_right_x - bottom_left_x
+        pixel_offset = lane_center - middle_x
+        cross_track_error = ((pixel_offset / lane_width_pixels) * TRACK_WIDTH)
+        
+        # lateral_offset_ratio = (min(abs((bottom_right_x - middle_x)), abs((middle_x - bottom_left_x))) - (middle_x)) / (middle_x)
+        # if abs((bottom_right_x - middle_x)) < abs((middle_x - bottom_left_x)):
+        #     lateral_offset_ratio = lateral_offset_ratio * -1.0
+        # print("Lateral Offset Ratio: " + str(lateral_offset_ratio))
+
+        # cross_track_error = MIDDLE_TRACK_WIDTH * lateral_offset_ratio
+        # print("Cross Track Error: " + str(cross_track_error))
+
+        #-----------Turn Detection--------------------
+        # # left turn incoming
+        # if (left_line["avg_x_bottomHalf"] - left_line["avg_x_topHalf"]) > 100 #This int will decide how soon you want to start slowing down
+        #     # update a message
+        #     pass
+        # # right turn incoming
+        # else if (right_line["avg_x_topHalf"] - right_line["avg_x_bottomHalf"]) > 100 #This int will decide how soon you want to start slowing down)
+        #     # update a message
+        #     pass
+
+        print("lane_center: " + str(lane_center))
+        print("Lateral Offset Ratio: " + str(lateral_offset_ratio))
+        print("Cross Track Error: " + str(cross_track_error))
+
+    cv2.imshow('Webcam', img) # Display frame
+
+    if cv2.waitKey(1) == ord('q'): # Escape key
         break
 
 #cap.release()

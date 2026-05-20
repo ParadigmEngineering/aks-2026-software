@@ -211,11 +211,11 @@ class LaneDetector(Node):
         # cross_track_error = middleTrackWidth * lateralOffsetRatio
 
         #------New CTE calculations-----------
-        lane_center = (bottom_left_x + bottom_right_x) / 2.0
-        lateral_offset_ratio = (lane_center - middle_x) / middle_x
+        lane_middle = (bottom_left_x + bottom_right_x) / 2.0
+        lateral_offset_ratio = (lane_middle - middle_x) / middle_x
 
         lane_width_pixels = bottom_right_x - bottom_left_x
-        pixel_offset = lane_center - middle_x
+        pixel_offset = lane_middle - middle_x
         cross_track_error = ((pixel_offset / lane_width_pixels) * self.TRACK_WIDTH)
         #-------------------------------------
 

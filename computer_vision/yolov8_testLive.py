@@ -1,6 +1,7 @@
 import cv2
 import math
 import numpy as np
+from operator import itemgetter
 from PIL import ImageGrab
 from ultralytics import YOLO
 
@@ -8,14 +9,14 @@ from ultralytics import YOLO
 KART_WIDTH = 52
 GROUND_TO_CAMERA = 22
 BUMPER_TO_CAMERA = 30
-TRACK_WIDTH = 163
+TRACK_WIDTH = 192
 MIDDLE_TRACK_WIDTH = TRACK_WIDTH / 2
 # Zed 2 res: 1280, 720, pixel size 2um x 2um
 # zed 2 lens size: 2mm
 
 res_x = 1920
 res_y = 1080
-middle_x = res_x / 2
+middle_x = res_x / 4
 #warning_threshold = 0.8
 confidence_threshold = 0.5
 
@@ -31,9 +32,9 @@ confidence_threshold = 0.5
 # cap.set(3, res_x) # Resolution x-value
 # cap.set(4, res_y) # Resolution y-value
 
-if not cap.isOpened():
-   print("Couldn't open camera")
-   exit()
+# if not cap.isOpened():
+#    print("Couldn't open camera")
+#    exit()
 
 # Pathway to the yolo model from where this file is in your computer
 model = YOLO("datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt") 
@@ -44,12 +45,12 @@ classNames = ["white line"]
 
 while True:
     #Camera
-    success, img = cap.read()
+    # success, img = cap.read()
     
     #Screen Recording
-    # cap =  ImageGrab.grab(bbox = (0, 0, int(res_x / 2), res_y))
-    # img = np.array(cap.getdata(),dtype='uint8').reshape((cap.size[1],cap.size[0],3))
-    # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    cap =  ImageGrab.grab(bbox = (0, 0, int(res_x / 2), res_y))
+    img = np.array(cap.getdata(),dtype='uint8').reshape((cap.size[1],cap.size[0],3))
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     results, = model(img, stream=True)
     whiteLine_num = 0
@@ -82,43 +83,50 @@ while True:
 
             # Pixel coordinates of white line objects
             coords = r.masks.xy
-            # print("Pixel coordinates: White Line " + str(whiteLine_num))
-            # print(coords)
+            coords_list = coords[0]
 
-            x_coordSum = 0
-            y_coordSum = 0
+            count = 0
+            for element in coords_list:
+                count += 1
+
             x_coordAvg = 0
             y_coordAvg = 0
-            count = 0
+            avg_x_bottomHalf = 0
+            avg_x_topHalf = 0
 
-            # coords.sort(key = lambda y: y[pt[1]]) # Sort list by y-value ascending 
+            coords_list_sorted = sorted(coords_list, key = itemgetter(1))
+            #coords_list.sort() # Sort list by y-value ascending 
 
-            # mid = len(mask) // 2
-            # bottomHalf = mask[:mid]
-            # topHalf = mask[mid:]
+            mid = count // 2
             
-            # avg_x_bottomHalf = sum(pt[0] for pt in bottomHalf) / len(bottomHalf)
-            # avg_x_topHalf = sum(pt[0] for pt in topHalf) / len(topHalf)
-            # avg_x = (avg_x_bottomHalf + avg_x_topHalf) / 2
-            # avg_y = sum(pt[1] for pt in mask) / len(mask)
+            bottomHalf = coords_list_sorted[mid:]
+            topHalf = coords_list_sorted[:mid]
 
-            for coordinate in coords:
-                for element in coordinate:
-                    x_coordSum += element[0]
-                    y_coordSum += element[1]
-                    count += 1
-            x_coordAvg = x_coordSum / count
-            y_coordAvg = y_coordSum / count
+            # print(coords_list)
+            # print(coords_list_sorted[1])
+            # print(coords_list_sorted[1][1])
+            # print(bottomHalf)
+
+            x_coordAvg = sum(pt[0] for pt in coords_list) / count
+            y_coordAvg = sum(pt[1] for pt in coords_list) / count
+
+            avg_x_bottomHalf = sum(pt[0] for pt in bottomHalf) / (count // 2)
+            print("axbh: " + str(avg_x_bottomHalf))
+            avg_x_topHalf = sum(pt[0] for pt in topHalf) / (count // 2)
+            print("axth: " + str(avg_x_topHalf))
 
             all_points = [pt for segment in coords for pt in segment]
 
             bottom_point = max(all_points, key=lambda pt: pt[1]) # Take the bottom-most (aka biggest y-value) point
             bottom_x = bottom_point[0] # Then store the its x value
             bottom_x_str = "Bottom x: " + str(bottom_point[0]) + ", " + str(bottom_point[1]) 
+            print(x_coordAvg)
 
             valid_lines.append({
                 "x_coordAvg": x_coordAvg,
                 "y_coordAvg": y_coordAvg,
+                "avg_x_bottomHalf": avg_x_bottomHalf,
+                "avg_x_topHalf": avg_x_topHalf,
                 "bottom_x": bottom_x,
                 "bottom_x_str": bottom_x_str
             })
@@ -138,7 +146,7 @@ while True:
 
             cv2.putText(img, classNames[cls] + str(whiteLine_num), org, font, fontScale, color, thickness)
 
-    valid_lines.sort(key = lambda line: line["x_coordAvg"]) # Sort the valid detected lines by leftmost x_coordAvg to rightmost
+    #valid_lines.sort(key = lambda line: line["x_coordAvg"]) # Sort the valid detected lines by leftmost x_coordAvg to rightmost
 
     if len(valid_lines) < 2:
         cv2.imshow('Webcam', img)
@@ -168,7 +176,7 @@ while True:
 
     # 1. Split lines into left and right of the screen
     for line in valid_lines:
-        if line["x_coordAvg"] < middle_x:
+        if (line["x_coordAvg"] < middle_x).any():
             left_candidates.append(line)
         else:
             right_candidates.append(line)
@@ -214,14 +222,16 @@ while True:
         # print("Cross Track Error: " + str(cross_track_error))
 
         #-----------Turn Detection--------------------
-        # # left turn incoming
-        # if (left_line["avg_x_bottomHalf"] - left_line["avg_x_topHalf"]) > 100 #This int will decide how soon you want to start slowing down
-        #     # update a message
-        #     pass
-        # # right turn incoming
-        # else if (right_line["avg_x_topHalf"] - right_line["avg_x_bottomHalf"]) > 100 #This int will decide how soon you want to start slowing down)
-        #     # update a message
-        #     pass
+        print("left_line avg difference: " + str(left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]))
+        print("right_line avg difference: " + str(right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]))
+        # right turn incoming
+        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 200: #This int will decide how soon you want to start slowing down
+            # update a message
+            print("right turn incoming")
+        # left turn incoming
+        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 200: #This int will decide how soon you want to start slowing down)
+            # update a message
+            print("left turn incoming")
 
         print("lane_center: " + str(lane_center))
         print("Lateral Offset Ratio: " + str(lateral_offset_ratio))

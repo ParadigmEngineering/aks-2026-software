@@ -21,16 +21,16 @@ middle_x = res_x / 2
 confidence_threshold = 0.5
 
 #Checks which camera indexes are available
-for camera_idx in range(10): 
-   cap = cv2.VideoCapture(camera_idx)
-   if cap.isOpened():
-       print(f"Camera index available: {camera_idx}")
-       cap.release() 
+# for camera_idx in range(10): 
+#    cap = cv2.VideoCapture(camera_idx)
+#    if cap.isOpened():
+#        print(f"Camera index available: {camera_idx}")
+#        cap.release() 
 
 #Start Camera
-cap = cv2.VideoCapture(0) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
-cap.set(3, res_x) #resolution x-value
-cap.set(4, res_y) #resolution y-value
+# cap = cv2.VideoCapture(0) # Camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
+# cap.set(3, res_x) # Resolution x-value
+# cap.set(4, res_y) # Resolution y-value
 
 # if not cap.isOpened():
 #    print("Couldn't open camera")

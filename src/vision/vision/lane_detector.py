@@ -4,7 +4,7 @@ import cv2
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point ## If this breaks something for you, get rid off all this stuff
+from geometry_msgs.msg import Quaternion ## If this breaks something for you, get rid off all this stuff``
 
 from ultralytics import YOLO
 import torch
@@ -127,7 +127,8 @@ class LaneDetector(Node):
                 if confidence_score < 0.5 or len(mask) == 0:
                     continue
 
-                mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
+                #mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
+                mask = mask[mask[:, 1].argsort()]
 
                 mid = len(mask) // 2
                 topHalf = mask[:mid]
@@ -223,10 +224,10 @@ class LaneDetector(Node):
         turn_detected = 0.0
         
         # right turn incoming
-        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 100: #This int will decide how soon you want to start slowing down
+        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 200: #This int will decide how soon you want to start slowing down
             turn_detected = -1.0
         # left turn incoming
-        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 100: #This int will decide how soon you want to start slowing down
+        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 200: #This int will decide how soon you want to start slowing down
             turn_detected = 1.0
 
         # package results and return

@@ -16,7 +16,7 @@ MIDDLE_TRACK_WIDTH = TRACK_WIDTH / 2
 
 res_x = 1920
 res_y = 1080
-middle_x = res_x / 4
+middle_x = res_x / 2
 #warning_threshold = 0.8
 confidence_threshold = 0.5
 
@@ -37,7 +37,7 @@ confidence_threshold = 0.5
 #    exit()
 
 # Pathway to the yolo model from where this file is in your computer
-model = YOLO("datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt") 
+model = YOLO("datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt") 
 # C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
 
 # Object classes
@@ -95,17 +95,11 @@ while True:
             avg_x_topHalf = 0
 
             coords_list_sorted = sorted(coords_list, key = itemgetter(1))
-            #coords_list.sort() # Sort list by y-value ascending 
 
             mid = count // 2
             
             bottomHalf = coords_list_sorted[mid:]
             topHalf = coords_list_sorted[:mid]
-
-            # print(coords_list)
-            # print(coords_list_sorted[1])
-            # print(coords_list_sorted[1][1])
-            # print(bottomHalf)
 
             x_coordAvg = sum(pt[0] for pt in coords_list) / count
             y_coordAvg = sum(pt[1] for pt in coords_list) / count
@@ -225,13 +219,13 @@ while True:
         print("left_line avg difference: " + str(left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]))
         print("right_line avg difference: " + str(right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]))
         # right turn incoming
-        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 200: #This int will decide how soon you want to start slowing down
-            # update a message
-            print("right turn incoming")
+        # if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 200: #This int will decide how soon you want to start slowing down
+        #     # update a message
+        #     print("right turn incoming")
         # left turn incoming
-        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 200: #This int will decide how soon you want to start slowing down)
-            # update a message
-            print("left turn incoming")
+        # elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 200: #This int will decide how soon you want to start slowing down)
+        #     # update a message
+        #     print("left turn incoming")
 
         print("lane_center: " + str(lane_center))
         print("Lateral Offset Ratio: " + str(lateral_offset_ratio))

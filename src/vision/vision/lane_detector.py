@@ -4,7 +4,7 @@ import cv2
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point ## If this breaks something for you, get rid off all this stuff
+from geometry_msgs.msg import Quaternion ## If this breaks something for you, get rid off all this stuff``
 
 from ultralytics import YOLO
 import torch
@@ -16,10 +16,10 @@ class LaneDetector(Node):
         
 
 
-        path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
-        path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_model = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
+        path_to_engine = '/home/paradigm/Code/GitHub/aks-2026-software/computer_vision/datasets/White-Line-Detection_v6/runs/segment/train2/weights/best.pt' # TODO: reevaluate
 
-        self.TRACK_WIDTH = 163 # Changed
+        self.TRACK_WIDTH = 192 # Changed
         self.middle_track_width = self.TRACK_WIDTH / 2.0
 
         self.bridge = CvBridge()
@@ -127,7 +127,8 @@ class LaneDetector(Node):
                 if confidence_score < 0.5 or len(mask) == 0:
                     continue
 
-                mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
+                #mask.sort(key = lambda y: y[mask[1]]) # Sort list by y-value ascending 
+                mask = mask[mask[:, 1].argsort()]
 
                 mid = len(mask) // 2
                 topHalf = mask[:mid]
@@ -211,22 +212,22 @@ class LaneDetector(Node):
         # cross_track_error = middleTrackWidth * lateralOffsetRatio
 
         #------New CTE calculations-----------
-        lane_center = (bottom_left_x + bottom_right_x) / 2.0
-        lateral_offset_ratio = (lane_center - middle_x) / middle_x
+        lane_middle = (bottom_left_x + bottom_right_x) / 2.0
+        lateral_offset_ratio = (lane_middle - middle_x) / middle_x
 
         lane_width_pixels = bottom_right_x - bottom_left_x
-        pixel_offset = lane_center - middle_x
+        pixel_offset = lane_middle - middle_x
         cross_track_error = ((pixel_offset / lane_width_pixels) * self.TRACK_WIDTH)
         #-------------------------------------
 
         #--------Turn Detection-------------
         turn_detected = 0.0
         
-        # left turn incoming
-        if (left_line["avg_x_bottomHalf"] - left_line["avg_x_topHalf"]) > 100: #This int will decide how soon you want to start slowing down
-            turn_detected = -1.0
         # right turn incoming
-        elif (right_line["avg_x_topHalf"] - right_line["avg_x_bottomHalf"]) > 100: #This int will decide how soon you want to start slowing down
+        if (left_line["avg_x_topHalf"] - left_line["avg_x_bottomHalf"]) > 200: #This int will decide how soon you want to start slowing down
+            turn_detected = -1.0
+        # left turn incoming
+        elif (right_line["avg_x_bottomHalf"] - right_line["avg_x_topHalf"]) > 200: #This int will decide how soon you want to start slowing down
             turn_detected = 1.0
 
         # package results and return

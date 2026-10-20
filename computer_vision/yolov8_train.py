@@ -8,7 +8,7 @@ from IPython import *
 # In[1]:
 
 
-get_ipython().run_line_magic('cd', "datasets//White-Line-Detection_v4")
+get_ipython().run_line_magic('cd', "datasets//White-Line-Detection_v6")
 #Change this to where the dataset folder is located in your computer
 
 
@@ -41,7 +41,7 @@ get_ipython().system('pip install roboflow ')
 from roboflow import Roboflow
 rf = Roboflow(api_key="VmIXHUMJcfpIBX5uALxj")
 project = rf.workspace("paradigmcomputervision").project("white-line-detection-instance-segmentation-qwdzf")
-version = project.version(4)
+version = project.version(7)
 dataset = version.download("yolov8")
 
 

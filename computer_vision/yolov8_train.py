@@ -8,7 +8,7 @@ from IPython import *
 # In[1]:
 
 
-get_ipython().run_line_magic('cd', "datasets//White-Line-Detection_v4")
+get_ipython().run_line_magic('cd', "datasets//Grass-Lane_v1")
 #Change this to where the dataset folder is located in your computer
 
 
@@ -40,8 +40,8 @@ get_ipython().system('pip install roboflow ')
 ########################################################################################################################
 from roboflow import Roboflow
 rf = Roboflow(api_key="VmIXHUMJcfpIBX5uALxj")
-project = rf.workspace("paradigmcomputervision").project("white-line-detection-instance-segmentation-qwdzf")
-version = project.version(4)
+project = rf.workspace("paradigmcomputervision").project("grass-and-lane-detection")
+version = project.version(1)
 dataset = version.download("yolov8")
 
 
@@ -49,7 +49,7 @@ dataset = version.download("yolov8")
 
 
 get_ipython().system('yolo task=segment mode=train model=yolov8s-seg.pt  data="data.yaml" epochs=10 imgsz=640')
-#Trains the model, this should take about 20 minutes 
+#Trains the model, this should take about 20 minutes for white lines, 80 minutes for grass & track
 
 
 # In[ ]:

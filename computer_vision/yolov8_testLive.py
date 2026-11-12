@@ -28,24 +28,24 @@ confidence_threshold = 0.5
 #        cap.release() 
 
 #Start Camera
-# cap = cv2.VideoCapture(0) # Camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
-# cap.set(3, res_x) # Resolution x-value
-# cap.set(4, res_y) # Resolution y-value
+# cap = cv2.VideoCapture(0) #camera index (usually 0 or 1) for webcam/zed 2, 'filename.mp4' for video
+# cap.set(3, res_x) #resolution x-value
+# cap.set(4, res_y) #resolution y-value
 
 # if not cap.isOpened():
 #    print("Couldn't open camera")
 #    exit()
 
-# Pathway to the yolo model from where this file is in your computer
-model = YOLO("datasets/White-Line-Detection_v4/runs/segment/train2/weights/best.pt") 
-# C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
+#Pathway to the yolo model from where this file is in your computer
+model = YOLO("datasets/Grass-Lane_v1/runs/segment/train5/weights/best.pt") 
+#C:...\aks-2026-software\computer_vision\datasets\White-Line-Detection_v4\runs\segment\train2\weights
 
-# Object classes
-classNames = ["white line"]
+#Object classes
+classNames = ["Grass", "Lane"]
 
 while True:
     #Camera
-    # success, img = cap.read()
+    #success, img = cap.read()
     
     #Screen Recording
     cap =  ImageGrab.grab(bbox = (0, 0, int(res_x / 2), res_y))

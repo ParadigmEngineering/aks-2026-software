@@ -2,7 +2,7 @@ import cv2
 from stereo_camera import capture_stereo
 
 # Capture one stereo pair at 720p.
-left, right = capture_stereo("720p")
+left, right = capture_stereo("vga",camera_index=1)
 
 # Print the dimensions of each image.
 print("Left image:", left.shape)

@@ -1,0 +1,1 @@
+This is where every photo taken by photo_capture.py will end up

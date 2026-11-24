@@ -1,10 +1,14 @@
-# Script which waits until a button is pressed, then captures an image
-# then send it to the 'photos' folder. Next step is making it compatible 
-# with ZED 2, adding an anaglyph effect, and putting the Paradigm logo
-# in the corner
+# Script which waits until a button is pressed while displaying a live video feed, 
+# then captures an video frame when a buton is pressed and sends it to the 'photos' folder.
+
+# The anaglyph effect is applied when the video feed is created. It can still work on a one
+# lens camera, but the photo will be thinner. To turn off anaglyph change these lines:
+# cv2.imshow("Camera", make_anaglyph(img)) => cv2.imshow("Camera", img)
+# if cv2.imwrite(str(photo_path), make_anaglyph(img)): => if cv2.imwrite(str(photo_path), img):
 
 import cv2
 from pathlib import Path
+from anaglyph import make_anaglyph
 
 photo_num = 0
 destination = Path("photos") # Set this string to where your 'photos' folder is
@@ -18,7 +22,7 @@ for camera_idx in range(6):
        cap.release() 
 
 # Open the camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 if not cap.isOpened():
    print("Couldn't open camera")
@@ -35,7 +39,7 @@ try:
             break
 
         # Display the camera feed
-        cv2.imshow("Camera", img)
+        cv2.imshow("Camera", make_anaglyph(img))
 
         # Waits for a button input
         key = cv2.waitKey(1) & 0xFF
@@ -52,7 +56,7 @@ try:
                 photo_path = destination / filename
 
             # Saves the photo to the 'photos' folder
-            if cv2.imwrite(str(photo_path), img):
+            if cv2.imwrite(str(photo_path), make_anaglyph(img)):
                 print(f"Photo saved: {photo_path}")
             else:
                 print("Failed to save photo")
@@ -61,4 +65,5 @@ finally:
     cap.release()
     cv2.destroyAllWindows()
 
+# Press ctrl + c in the terminal to terminate the script
     

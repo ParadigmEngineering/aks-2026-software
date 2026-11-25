@@ -9,7 +9,7 @@
 import cv2
 from pathlib import Path
 from anaglyph import make_anaglyph
-
+from Pdigm_logo import add_logo
 photo_num = 0
 destination = Path("photos") # Set this string to where your 'photos' folder is
 destination.mkdir(parents = True, exist_ok = True) # Creates a photos folder if none is in the current directory
@@ -56,7 +56,7 @@ try:
                 photo_path = destination / filename
 
             # Saves the photo to the 'photos' folder
-            if cv2.imwrite(str(photo_path), make_anaglyph(img)):
+            if cv2.imwrite(str(photo_path), make_anaglyph(img), add_logo(img)):
                 print(f"Photo saved: {photo_path}")
             else:
                 print("Failed to save photo")

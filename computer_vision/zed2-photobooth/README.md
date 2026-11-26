@@ -1,3 +1,10 @@
 # Paradigm Photo Booth
 
-Extract the ZIP into your project, keep `drive-token.json` beside `photobooth_upload.py`, and install dependencies with `   `. Import `PhotoBoothUploader` with `from paradigm_photo_booth import PhotoBoothUploader` and call `url = PhotoBoothUploader().upload("/path/to/photo.jpg")`. The bundled token lets the module upload to `photo_booth` and return the Google Drive URL without a browser or a fresh sign-in while the token is valid. Keep the ZIP and token private and out of source control. To store the token separately, set `DRIVE_TOKEN_FILE` to its path.
+Extract the ZIP into your project, keep `drive-token.json` beside `photobooth_upload.py`, and install dependencies with `pip install opencv-python google-api-python-client google-auth-oauthlib`. Import `PhotoBoothUploader` with `from photobooth_upload import PhotoBoothUploader` and call `url = PhotoBoothUploader().upload("/path/to/photo.jpg")`. The bundled token lets the module upload to `photo_booth` and return the Google Drive URL without a browser or a fresh sign-in while the token is valid. Keep the ZIP and token private and out of source control. To store the token separately, set `DRIVE_TOKEN_FILE` to its path.
+
+## QR code
+
+After each photo, `photo_capture.py` makes a QR code of the photo's Drive link (`qr_code.py`, OpenCV only), saves it as `photos/photo_N_qr.png`, uploads it to `photo_booth`, and opens it in a browser tab for the guest to scan. Every upload is shared as "anyone with the link can view".
+- Run from this folder: `python photo_capture.py`, press `P` to take a photo.
+- QR for any link by hand: `python qr_code.py "<url>" -o qr.png`
+- Self-check (no camera or Drive needed): `python test_qr_code.py`

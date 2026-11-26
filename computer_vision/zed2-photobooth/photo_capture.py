@@ -7,9 +7,11 @@
 # if cv2.imwrite(str(photo_path), make_anaglyph(img)): => if cv2.imwrite(str(photo_path), img):
 
 import cv2
+import webbrowser
 from pathlib import Path
 from anaglyph import make_anaglyph
 from photobooth_upload import PhotoBoothUploader
+from qr_code import save_qr
 
 photo_num = 0
 destination = Path("photos") # Set this string to where your 'photos' folder is
@@ -60,12 +62,19 @@ try:
             if cv2.imwrite(str(photo_path), make_anaglyph(img)):
                 print(f"Photo saved: {photo_path}")
 
-                # Upload the photo to the google drive
+                # Upload the photo to the google drive, then make a QR code of its link,
+                # upload that too and open it in a browser tab for the guest to scan
                 try:
-                    url = PhotoBoothUploader().upload(photo_path)
+                    uploader = PhotoBoothUploader()
+                    url = uploader.upload(photo_path)
                     print("Photo sent to drive at " + str(url))
+
+                    qr_path = save_qr(url, destination / f"photo_{photo_num}_qr.png")
+                    qr_url = uploader.upload(qr_path)
+                    print("QR code sent to drive at " + str(qr_url))
+                    webbrowser.open(qr_url)
                 except Exception as e:
-                    print("Failed to upload photo to drive")
+                    print(f"Failed to upload photo to drive: {e}")
 
             else:
                 print("Failed to save photo")

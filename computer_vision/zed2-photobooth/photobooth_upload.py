@@ -87,6 +87,13 @@ def _upload(drive, filename, source, mime_type):
     result = None
     while result is None:
         _, result = request.next_chunk(num_retries=3)
+    # Folder already shares "anyone with the link", but set it on the file too so the
+    # QR link still works if someone changes the folder's sharing.
+    drive.permissions().create(
+        fileId=result["id"],
+        body={"type": "anyone", "role": "reader"},
+        supportsAllDrives=True,
+    ).execute()
     return result
 
 

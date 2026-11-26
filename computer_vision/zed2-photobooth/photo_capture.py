@@ -22,7 +22,7 @@ for camera_idx in range(6):
        cap.release() 
 
 # Open the camera
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
    print("Couldn't open camera")
@@ -38,8 +38,11 @@ try:
             print("Failed to capture")
             break
 
-        # Display the camera feed
-        cv2.imshow("Camera", make_anaglyph(img))
+        # Add anaglyph effect to the camera feed
+        img = make_anaglyph(img)
+
+        # Display the feed
+        cv2.imshow("Camera", img)
 
         # Waits for a button input
         key = cv2.waitKey(1) & 0xFF
@@ -55,8 +58,8 @@ try:
                 filename = f"photo_{photo_num}.png"
                 photo_path = destination / filename
 
-            # Saves the photo to the 'photos' folder
-            if cv2.imwrite(str(photo_path), make_anaglyph(img), add_logo(img)):
+            # Adds the paradigm logo and saves the photo to the 'photos' folder
+            if cv2.imwrite(str(photo_path), add_logo(img)):
                 print(f"Photo saved: {photo_path}")
             else:
                 print("Failed to save photo")

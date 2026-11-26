@@ -9,6 +9,7 @@
 import cv2
 from pathlib import Path
 from anaglyph import make_anaglyph
+from photobooth_upload import PhotoBoothUploader
 
 photo_num = 0
 destination = Path("photos") # Set this string to where your 'photos' folder is
@@ -22,7 +23,7 @@ for camera_idx in range(6):
        cap.release() 
 
 # Open the camera
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
    print("Couldn't open camera")
@@ -58,6 +59,14 @@ try:
             # Saves the photo to the 'photos' folder
             if cv2.imwrite(str(photo_path), make_anaglyph(img)):
                 print(f"Photo saved: {photo_path}")
+
+                # Upload the photo to the google drive
+                try:
+                    url = PhotoBoothUploader().upload(photo_path)
+                    print("Photo sent to drive")
+                except Exception as e:
+                    print("Failed to upload photo to drive")
+
             else:
                 print("Failed to save photo")
 

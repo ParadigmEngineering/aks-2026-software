@@ -22,6 +22,14 @@ def make_qr(url, size=400):
     return cv2.cvtColor(qr, cv2.COLOR_GRAY2BGR)
 
 
+def overlay_qr(frame, qr, margin=10):
+    """Paste `qr` into the bottom-right corner of `frame` (in place) and return its top-left (x, y)."""
+    h, w = qr.shape[:2]
+    y, x = frame.shape[0] - h - margin, frame.shape[1] - w - margin
+    frame[y:y + h, x:x + w] = qr
+    return x, y
+
+
 def save_qr(url, path, size=400):
     """Write the QR code for `url` to `path` and return the path."""
     path = Path(path)

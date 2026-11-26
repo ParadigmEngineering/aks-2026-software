@@ -63,7 +63,7 @@ try:
                 # Upload the photo to the google drive
                 try:
                     url = PhotoBoothUploader().upload(photo_path)
-                    print("Photo sent to drive")
+                    print("Photo sent to drive at " + str(url))
                 except Exception as e:
                     print("Failed to upload photo to drive")
 

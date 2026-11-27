@@ -10,3 +10,8 @@ Backup: `python photo_capture.py --browser-qr` also uploads the QR image to `pho
 - Run from this folder: `python photo_capture.py`, open the browser view (below), press `P` to take a photo. Ctrl+C in the terminal to stop.
 - QR for any link by hand: `python qr_code.py "<url>" -o qr.png`
 - Self-check (no camera or Drive needed): `python test_qr_code.py`
+
+## Browser view (Jetson on the kart)
+
+The feed is shown in a web browser, not an OpenCV window, so the Jetson needs no screen and no X11 forwarding. SSH in normally (no `-Y`), start `python3 photo_capture.py`, then open `http://<jetson-ip>:8000` on any laptop or phone on the same network (`hostname -I` on the Jetson shows the IP). Press `F11` for fullscreen, then `P` or the Take photo button. Use `--port` to change the port. Anyone on the network who opens the page can see the feed and take photos.
+- Self-check (no camera or Drive needed): `python test_web_view.py`

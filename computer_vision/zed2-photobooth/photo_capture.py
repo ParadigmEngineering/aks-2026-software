@@ -1,5 +1,7 @@
 # Script which waits until a button is pressed while displaying a live video feed,
 # then captures a video frame when a button is pressed and sends it to the 'photos' folder.
+# The feed is shown in a web browser (see web_view.py) so it works with the Jetson on the kart:
+# open http://<jetson-ip>:8000 on a laptop or phone on the same network, then press P or the button.
 # The photo is uploaded to Google Drive in a background thread so the feed keeps moving,
 # then a QR code of its Drive link is saved next to the photo (photo_N_qr.png) and shown in
 # the corner of the feed for QR_SECONDS, then fades out over FADE_SECONDS.
@@ -19,6 +21,7 @@ import cv2
 from anaglyph import make_anaglyph
 from photobooth_upload import PhotoBoothUploader
 from qr_code import make_qr, overlay_qr, save_qr
+from web_view import FrameServer
 
 QR_SECONDS = 30      # How long the QR code stays on screen after an upload
 FADE_SECONDS = 2     # Then it fades out over this long
@@ -29,6 +32,7 @@ FONT = cv2.FONT_HERSHEY_SIMPLEX
 parser = argparse.ArgumentParser(description="ZED2 photo booth")
 parser.add_argument("--browser-qr", action="store_true",
                     help="also upload the QR image to Drive and open it in a browser tab (backup)")
+parser.add_argument("--port", type=int, default=8000, help="port for the browser view (default 8000)")
 args = parser.parse_args()
 
 
@@ -70,7 +74,9 @@ if not cap.isOpened():
    print("Couldn't open camera")
    exit()
 
-print("Press P to take a photo")
+web = FrameServer(args.port)
+print(f"Open http://<jetson-ip>:{args.port} in a browser (find the IP with: hostname -I)")
+print("Press P or the Take photo button in the browser to take a photo")
 
 uploader_thread = ThreadPoolExecutor(max_workers=1)
 pending = None       # Upload in progress (a Future), None when idle
@@ -117,12 +123,10 @@ try:
             fade = min(1.0, (qr_until - now) / FADE_SECONDS)
             frame = cv2.addWeighted(with_qr, fade, frame, 1 - fade, 0)
 
-        # Display the camera feed
-        cv2.imshow("Camera", frame)
+        # Send the camera feed to the browser
+        web.show(frame)
 
-        # Waits for a button input
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('p') or key == ord('P'): # Photo taken
+        if web.snap_requested(): # Photo taken
             if pending is not None:
                 print("Still uploading the last photo, wait for its QR code")
                 continue
@@ -148,7 +152,7 @@ try:
 
 finally:
     cap.release()
-    cv2.destroyAllWindows()
+    web.close()
     uploader_thread.shutdown(wait=True)  # Let an upload in progress finish before exiting
 
 # Press ctrl + c in the terminal to terminate the script
